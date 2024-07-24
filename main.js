@@ -1,6 +1,5 @@
 const { app, BrowserWindow, ipcMain, nativeTheme } = require('electron/main')
 const path = require('node:path')
-const mdns = require("mdns-js")
 
 function createWindow () {
   const win = new BrowserWindow({
