@@ -26,62 +26,6 @@ user1 = User(id=1, name="Jane")
 user2 = User(id=2, name="John")
 
 
-class MockCamera:
-    def __init__(self):
-        self._thread: threading.Thread = None
-        self._lock = threading.RLock()
-        self._is_open: bool = False
-        self._is_streaming: bool = False
-        self._frame: Any = None
-        self._cb = None
-        self._delay = 0.04
-
-    def thread_run(self):
-        while self._is_open and self._is_streaming:
-            frame = np.random.rand(480, 640, 3) * 255
-            with self._lock:
-                self._frame = frame.astype(np.uint8)
-                try:
-                    if self._cb is not None:
-                        self._cb(self._frame.copy())
-                except Exception as e:
-                    print(f"ah! {e}")
-
-            time.sleep(self._delay)
-
-    def open(self):
-        self._is_open = True
-
-        print("open camera")
-
-    def close(self):
-        self._is_open = False
-
-        print("close camera")
-
-    def start_streaming(self, cb):
-        self._is_streaming = True
-        self._cb = cb
-        self._thread = threading.Thread(target=self.thread_run)
-        self._thread.setDaemon(True)
-        self._thread.start()
-
-    def stop_streaming(self):
-        self._is_streaming = False
-        self._cb = None
-        self._thread = None
-
-    def get_next_frame(self):
-        with self._lock:
-            return self._frame.copy()
-
-    def capture(self): ...
-
-    def set_exposure_ms(self, exposure_ms: float): ...
-
-    def get_exposure_ms(self) -> float: ...
-
-
 class MyXThing(XThing):
     png_stream_cv = PngImageStreamDescriptor(ringbuffer_size=100)
     _xyz: User
@@ -148,12 +92,13 @@ class MyXThing(XThing):
         camera.stop_stream()
         self._streaming = False
 
-    @xaction()
+    @xaction(input_model=None, output_model=StrictFloat)
     def capture_camera(
         self, apn: ActionProgressNotifier, ct: CancellationToken, logger: logging.Logger
     ):
         camera: VirtualCamera = self.find_component(MOCK_CAMERA_NAME)
-        camera.capture()
+        frame = camera.capture()
+        return frame.mean()
 
     @xaction(input_model=User, output_model=User)
     def cancellable_action(
@@ -177,7 +122,6 @@ class MyXThing(XThing):
         return s
 
 
-camera = MockCamera()
 camera = VirtualCamera()
 
 myxthing = MyXThing("_xthings._tcp.local.", "myxthing._xthings._tcp.local.")

@@ -13,7 +13,10 @@ class CameraState(str, Enum):
     OPENED = "opened"
     CLOSED = "closed"
     STREAMING = "streaming"
-    CAPTURING = "capturing"
+    CAPTURING1 = "capturing1"
+    CAPTURING2 = "capturing2"
+    IDLE1 = "idle1"
+    IDLE2 = "idle2"
 
 
 class CameraProperties(BaseModel): ...

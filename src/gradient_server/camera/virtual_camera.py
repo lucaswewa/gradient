@@ -4,6 +4,7 @@ import numpy as np
 import cv2 as cv
 from .camera_protocol import CameraProtocol
 from .camera_protocol import CameraState
+from typing import Set
 
 
 class VirtualCamera(CameraProtocol):
@@ -13,37 +14,72 @@ class VirtualCamera(CameraProtocol):
         self._frame = None
         self._status = CameraState.CLOSED
         self._exposure = None
-        self._cb = None
-        self._delay = 0.3
+        self._cb: Set[callable] = set()
+        self._cbb = None
+        self._delay = 0.002
         self._onhold = False
 
     def thread_run(self):
-        while (
-            self._status == CameraState.STREAMING
-            or self._status == CameraState.CAPTURING
-        ):
-            with self._lock:
-                if self._status == CameraState.CAPTURING:
-                    for i in range(10):
-                        time.sleep(0.1)
-                    print("zzz.......")
-                    time.sleep(1)
-                    frame = np.random.rand(480, 640, 3) * 50
-                    print("======== capture frame")
-                    # time.sleep(0.5)
-                    self._status = CameraState.STREAMING
-                else:
-                    frame = np.random.rand(480, 640, 3) * 255
-                    print("stream frame")
+        idle_step = 0
 
+        while self._status != CameraState.CLOSED:
+            if self._status == CameraState.STREAMING:
+                frame = np.random.rand(480, 640, 3) * 255
                 self._frame = frame.astype(np.uint8)
                 self._frame = cv.cvtColor(self._frame, cv.COLOR_BGR2GRAY)
                 try:
-                    if self._cb is not None:
-                        print("callback...")
-                        self._cb(self._frame.copy())
+                    with self._lock:
+                        for cb in self._cb:
+                            cb(self._frame.copy())
                 except Exception as e:
                     print(f"ah! {e}")
+            elif self._status == CameraState.CAPTURING1:
+                frame = np.random.rand(480, 640, 3) * 0
+                self._frame = frame.astype(np.uint8)
+                self._frame = cv.cvtColor(self._frame, cv.COLOR_BGR2GRAY)
+                try:
+                    with self._lock:
+                        for cb in self._cb:
+                            cb(self._frame.copy())
+                except Exception as e:
+                    print(f"ah! {e}")
+                self._status = CameraState.IDLE1
+            elif self._status == CameraState.CAPTURING2:
+                frame = np.random.rand(480, 640, 3) * 255
+                self._frame = frame.astype(np.uint8)
+                try:
+                    with self._lock:
+                        for cb in self._cb:
+                            cb(self._frame.copy())
+                        if self._cbb is not None:
+                            self._cbb(self._frame.copy())
+                except Exception as e:
+                    print(f"ah! {e}")
+                self._status = CameraState.IDLE2
+            elif self._status == CameraState.IDLE1:
+                try:
+                    with self._lock:
+                        for cb in self._cb:
+                            cb(self._frame.copy())
+                except Exception as e:
+                    print(f"ah! {e}")
+                if idle_step < 30:
+                    idle_step += 1
+                else:
+                    self._status = CameraState.CAPTURING2
+                    idle_step = 0
+            elif self._status == CameraState.IDLE2:
+                try:
+                    with self._lock:
+                        for cb in self._cb:
+                            cb(self._frame.copy())
+                except Exception as e:
+                    print(f"ah! {e}")
+                if idle_step < 50:
+                    idle_step += 1
+                else:
+                    self._status = CameraState.STREAMING
+                    idle_step = 0
 
             time.sleep(self._delay)
 
@@ -72,7 +108,7 @@ class VirtualCamera(CameraProtocol):
         return self._binning_hori, self._binning_vert
 
     def register_frame_callback(self, cb):
-        self._cb = cb
+        self._cb.add(cb)
 
     def start_stream(self):
         with self._lock:
@@ -88,5 +124,16 @@ class VirtualCamera(CameraProtocol):
             self._thread = None
 
     def capture(self):
+        frame = []
+
+        def cb(data):
+            frame.append(data)
+
         with self._lock:
-            self._status = CameraState.CAPTURING
+            self._cbb = cb
+            self._status = CameraState.CAPTURING1
+        while len(frame) < 1:
+            time.sleep(0)
+        with self._lock:
+            self._cbb = None
+        return frame[0]

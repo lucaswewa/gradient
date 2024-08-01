@@ -24,3 +24,6 @@ PUT http://localhost:8000/xthing/xyz
 
 ### Get TD
 GET http://localhost:8000/xthing
+
+### Get invocation by id
+GET http://localhost:8000/invocations/6b16d825-2a65-45b5-a487-7a98bd6556f1
