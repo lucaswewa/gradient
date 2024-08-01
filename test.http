@@ -10,6 +10,10 @@ POST http://localhost:8000/xthing/start_stream_camera
 ### Stop streaming
 POST http://localhost:8000/xthing/stop_stream_camera
 
+
+### Capture
+POST http://localhost:8000/xthing/capture_camera
+
 ### Get xyz
 GET http://localhost:8000/xthing/xyz
 

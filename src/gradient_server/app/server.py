@@ -11,6 +11,9 @@ import threading
 from typing import Any
 import datetime
 
+
+from ..camera.virtual_camera import VirtualCamera
+
 MOCK_CAMERA_NAME = "xthings.components.cameras.mockcamera"
 
 
@@ -107,21 +110,18 @@ class MyXThing(XThing):
     def xyz(self, v):
         self._xyz = v
 
-        camera: MockCamera = self.find_component(MOCK_CAMERA_NAME)
-        camera._delay = self._xyz
-
     @xaction()
     def open_camera(
         self, apn: ActionProgressNotifier, ct: CancellationToken, logger: logging.Logger
     ):
-        camera = self.find_component(MOCK_CAMERA_NAME)
+        camera: VirtualCamera = self.find_component(MOCK_CAMERA_NAME)
         camera.open()
 
     @xaction()
     def close_camera(
         self, apn: ActionProgressNotifier, ct: CancellationToken, logger: logging.Logger
     ):
-        camera = self.find_component(MOCK_CAMERA_NAME)
+        camera: VirtualCamera = self.find_component(MOCK_CAMERA_NAME)
         camera.close()
 
     @xaction()
@@ -132,29 +132,28 @@ class MyXThing(XThing):
             try:
                 if self.png_stream_cv.add_frame(frame=frame):
                     apn("add frame")
-                    self.last_frame_index = self.png_stream_cv.last_frame_i
-                    if self.png_stream_cv.last_frame_i % 100 == 0:
-                        print(datetime.datetime.now(), self.png_stream_cv.last_frame_i)
             except Exception as e:
                 print(threading.currentThread(), f"exception {e}")
 
         apn("start streaming")
-        camera: MockCamera = self.find_component(MOCK_CAMERA_NAME)
-        camera.start_streaming(cb)
+        camera: VirtualCamera = self.find_component(MOCK_CAMERA_NAME)
+        camera.register_frame_callback(cb)
+        camera.start_stream()
 
     @xaction()
     def stop_stream_camera(
         self, apn: ActionProgressNotifier, ct: CancellationToken, logger: logging.Logger
     ):
-        camera: MockCamera = self.find_component(MOCK_CAMERA_NAME)
-        camera.stop_streaming()
+        camera: VirtualCamera = self.find_component(MOCK_CAMERA_NAME)
+        camera.stop_stream()
         self._streaming = False
 
     @xaction()
     def capture_camera(
         self, apn: ActionProgressNotifier, ct: CancellationToken, logger: logging.Logger
     ):
-        camera: MockCamera = self.find_component(MOCK_CAMERA_NAME)
+        camera: VirtualCamera = self.find_component(MOCK_CAMERA_NAME)
+        camera.capture()
 
     @xaction(input_model=User, output_model=User)
     def cancellable_action(
@@ -179,6 +178,8 @@ class MyXThing(XThing):
 
 
 camera = MockCamera()
+camera = VirtualCamera()
+
 myxthing = MyXThing("_xthings._tcp.local.", "myxthing._xthings._tcp.local.")
 myxthing.add_component(camera, MOCK_CAMERA_NAME)
 
