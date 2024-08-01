@@ -128,7 +128,7 @@ myxthing = MyXThing("_xthings._tcp.local.", "myxthing._xthings._tcp.local.")
 myxthing.add_component(camera, MOCK_CAMERA_NAME)
 
 xthings_server = XThingsServer(settings_folder="./settings")
-xthings_server.add_xthing(myxthing, "/xthing")
+xthings_server.add_xthing(myxthing, "/myxthing")
 myxthing.foo = User(id=2, name="Smith")
 
 app = xthings_server.app
@@ -149,7 +149,7 @@ html = """
         <ul id='messages'>
         </ul>
         <script>
-            var ws = new WebSocket("ws://localhost:8000/xthing/ws");
+            var ws = new WebSocket("ws://localhost:8000/myxthing/ws");
             ws.onmessage = function(event) {
                 var messages = document.getElementById('messages')
                 var message = document.createElement('li')

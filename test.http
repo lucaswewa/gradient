@@ -1,29 +1,29 @@
 ### Open camera
-POST http://localhost:8000/xthing/open_camera
+POST http://localhost:8000/myxthing/open_camera
 
 ### Close camera
-POST http://localhost:8000/xthing/close_camera
+POST http://localhost:8000/myxthing/close_camera
 
 ### Start streaming
-POST http://localhost:8000/xthing/start_stream_camera
+POST http://localhost:8000/myxthing/start_stream_camera
 
 ### Stop streaming
-POST http://localhost:8000/xthing/stop_stream_camera
+POST http://localhost:8000/myxthing/stop_stream_camera
 
 
 ### Capture
-POST http://localhost:8000/xthing/capture_camera
+POST http://localhost:8000/myxthing/capture_camera
 
 ### Get xyz
-GET http://localhost:8000/xthing/xyz
+GET http://localhost:8000/myxthing/xyz
 
 ### Update xyz
-PUT http://localhost:8000/xthing/xyz
+PUT http://localhost:8000/myxthing/xyz
 
 0.02
 
 ### Get TD
-GET http://localhost:8000/xthing
+GET http://localhost:8000/myxthing
 
 ### Get invocation by id
 GET http://localhost:8000/invocations/6b16d825-2a65-45b5-a487-7a98bd6556f1
