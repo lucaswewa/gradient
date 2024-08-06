@@ -20,7 +20,7 @@ GET http://localhost:8000/myxthing/xyz
 ### Update xyz
 PUT http://localhost:8000/myxthing/xyz
 
-0.02
+0.01
 
 ### Get TD
 GET http://localhost:8000/myxthing
