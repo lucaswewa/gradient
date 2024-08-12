@@ -120,7 +120,7 @@ class VirtualCamera(CameraProtocol):
     def stop_stream(self):
         with self._lock:
             self._status = CameraState.OPENED
-            self._cb = None
+            self._cb = set()
             self._thread = None
 
     def capture(self):
