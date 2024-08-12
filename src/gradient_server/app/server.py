@@ -15,11 +15,13 @@ import datetime
 from ..camera.virtual_camera import VirtualCamera
 from ..filterwheel.virtual_filterwheel import VirtualFilterwheel
 from ..stage.virtual_stage import VirtualStage
+from ..prescription.virtual_rxcompensation import VirtualRxCompensation
 
 MOCK_CAMERA_NAME = "xthings.components.cameras.mockcamera"
 MOCK_COLOR_FILTERWHEEL = "xthings.components.filterwheels.mockColorFilters"
 MOCK_ND_FILTERWHEEL = "xthings.components.filterwheels.mockNDFilters"
 MOCK_STAGE = "xthings.components.stages.mockStage"
+MOCK_RX_COMPENSATION = "xthings.components.prescription.mockRxCompensation"
 
 
 class User(BaseModel):
@@ -174,17 +176,64 @@ class MyXThing(XThing):
         stage: VirtualStage = self.find_component(MOCK_STAGE)
         stage.move_position_rel(pos_rel)
 
+    @xproperty(model=StrictFloat)
+    def rx_sph_power(self):
+        rxCompensation: VirtualRxCompensation = self.find_component(
+            MOCK_RX_COMPENSATION
+        )
+        sph_power = rxCompensation.get_spherical_rx()
+        return sph_power
+
+    @xproperty(model=StrictFloat)
+    def rx_cyl_power(self):
+        rxCompensation: VirtualRxCompensation = self.find_component(
+            MOCK_RX_COMPENSATION
+        )
+        cyl_power = rxCompensation.get_cylindrical_rx_power()
+        return cyl_power
+
+    @xproperty(model=StrictFloat)
+    def rx_cyl_axis(self):
+        rxCompensation: VirtualRxCompensation = self.find_component(
+            MOCK_RX_COMPENSATION
+        )
+        cyl_axis = rxCompensation.get_cylindrical_rx_axis()
+        return cyl_axis
+
+    @xaction(input_model=StrictFloat)
+    def move_rx_sph_power(self, sph_power, apn, ct, logger):
+        rxCompensation: VirtualRxCompensation = self.find_component(
+            MOCK_RX_COMPENSATION
+        )
+        rxCompensation.move_spherical_rx(sph_power)
+
+    @xaction(input_model=StrictFloat)
+    def move_rx_cyl_power(self, cyl_power, apn, ct, logger):
+        rxCompensation: VirtualRxCompensation = self.find_component(
+            MOCK_RX_COMPENSATION
+        )
+        rxCompensation.move_cylindrical_rx_power(cyl_power)
+
+    @xaction(input_model=StrictFloat)
+    def move_rx_cyl_axis(self, cyl_axis, apn, ct, logger):
+        rxCompensation: VirtualRxCompensation = self.find_component(
+            MOCK_RX_COMPENSATION
+        )
+        rxCompensation.move_cylindrical_rx_axis(cyl_axis)
+
 
 camera = VirtualCamera()
 xyzFilterwheel = VirtualFilterwheel("XYZ Filters")
 ndFilterwheel = VirtualFilterwheel("ND Filters")
 stage = VirtualStage("Focusing Stage")
+rxCompensation = VirtualRxCompensation("RX Compensation")
 
 myxthing = MyXThing("_xthings._tcp.local.", "myxthing._xthings._tcp.local.")
 myxthing.add_component(camera, MOCK_CAMERA_NAME)
 myxthing.add_component(xyzFilterwheel, MOCK_COLOR_FILTERWHEEL)
 myxthing.add_component(ndFilterwheel, MOCK_ND_FILTERWHEEL)
 myxthing.add_component(stage, MOCK_STAGE)
+myxthing.add_component(rxCompensation, MOCK_RX_COMPENSATION)
 
 xthings_server = XThingsServer(settings_folder="./settings")
 xthings_server.add_xthing(myxthing, "/myxthing")

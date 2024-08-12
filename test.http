@@ -57,3 +57,26 @@ POST http://localhost:8000/myxthing/move_stage_rel
 
 -0.001
 
+### Get RX Sph power
+GET http://localhost:8000/myxthing/rx_sph_power
+
+### Get RX Cyl power
+GET http://localhost:8000/myxthing/rx_cyl_power
+
+### Get RX Cyl Axis
+GET http://localhost:8000/myxthing/rx_cyl_axis
+
+### Move RX Sph power
+POST http://localhost:8000/myxthing/move_rx_sph_power
+
+-1.50
+
+### Move RX Cyl power
+POST http://localhost:8000/myxthing/move_rx_cyl_power
+
+1.25
+
+### Move RX Cyl Axis
+POST http://localhost:8000/myxthing/move_rx_cyl_axis
+
+15.0
