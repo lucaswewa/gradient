@@ -14,10 +14,12 @@ import datetime
 
 from ..camera.virtual_camera import VirtualCamera
 from ..filterwheel.virtual_filterwheel import VirtualFilterwheel
+from ..stage.virtual_stage import VirtualStage
 
 MOCK_CAMERA_NAME = "xthings.components.cameras.mockcamera"
 MOCK_COLOR_FILTERWHEEL = "xthings.components.filterwheels.mockColorFilters"
 MOCK_ND_FILTERWHEEL = "xthings.components.filterwheels.mockNDFilters"
+MOCK_STAGE = "xthings.components.stages.mockStage"
 
 
 class User(BaseModel):
@@ -156,15 +158,33 @@ class MyXThing(XThing):
         ndFilters: VirtualFilterwheel = self.find_component(MOCK_ND_FILTERWHEEL)
         ndFilters.set_position_by_name(nd_filter)
 
+    @xproperty(model=StrictFloat)
+    def stage(self) -> StrictFloat:
+        stage: VirtualStage = self.find_component(MOCK_STAGE)
+        pos = stage.get_position()
+        return pos
+
+    @xaction(input_model=StrictFloat)
+    def move_stage_abs(self, pos_abs, apn, ct, logger):
+        stage: VirtualStage = self.find_component(MOCK_STAGE)
+        stage.move_position_abs(pos_abs)
+
+    @xaction(input_model=StrictFloat)
+    def move_stage_rel(self, pos_rel, apn, ct, logger):
+        stage: VirtualStage = self.find_component(MOCK_STAGE)
+        stage.move_position_rel(pos_rel)
+
 
 camera = VirtualCamera()
-xyzFilterwheel = VirtualFilterwheel("XYZ")
-ndFilterwheel = VirtualFilterwheel("ND")
+xyzFilterwheel = VirtualFilterwheel("XYZ Filters")
+ndFilterwheel = VirtualFilterwheel("ND Filters")
+stage = VirtualStage("Focusing Stage")
 
 myxthing = MyXThing("_xthings._tcp.local.", "myxthing._xthings._tcp.local.")
 myxthing.add_component(camera, MOCK_CAMERA_NAME)
 myxthing.add_component(xyzFilterwheel, MOCK_COLOR_FILTERWHEEL)
 myxthing.add_component(ndFilterwheel, MOCK_ND_FILTERWHEEL)
+myxthing.add_component(stage, MOCK_STAGE)
 
 xthings_server = XThingsServer(settings_folder="./settings")
 xthings_server.add_xthing(myxthing, "/myxthing")

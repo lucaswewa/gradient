@@ -36,11 +36,24 @@ POST http://localhost:8000/myxthing/move_color_filter
 
 "Z"
 
-
-### Get ND Filter
+### Get ND Filter Value
 GET http://localhost:8000/myxthing/nd_filter
 
 ### Move ND Filter
 POST http://localhost:8000/myxthing/move_nd_filter
 
 "ND1"
+
+### Get Stage position
+GET http://localhost:8000/myxthing/stage
+
+### Move Stage Position Abs
+POST http://localhost:8000/myxthing/move_stage_abs
+
+0.4
+
+### Move Stage Position Rel
+POST http://localhost:8000/myxthing/move_stage_rel
+
+-0.001
+
