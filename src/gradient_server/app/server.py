@@ -2,7 +2,7 @@ from xthings import XThing, xproperty, xaction
 from xthings.descriptors import PngImageStreamDescriptor
 from xthings.server import XThingsServer
 from xthings.action import CancellationToken, ActionProgressNotifier
-from pydantic import BaseModel, StrictFloat
+from pydantic import BaseModel, StrictFloat, StrictStr, StrictInt
 from fastapi.responses import HTMLResponse
 import numpy as np
 import time
@@ -13,8 +13,11 @@ import datetime
 
 
 from ..camera.virtual_camera import VirtualCamera
+from ..filterwheel.virtual_filterwheel import VirtualFilterwheel
 
 MOCK_CAMERA_NAME = "xthings.components.cameras.mockcamera"
+MOCK_COLOR_FILTERWHEEL = "xthings.components.filterwheels.mockColorFilters"
+MOCK_ND_FILTERWHEEL = "xthings.components.filterwheels.mockNDFilters"
 
 
 class User(BaseModel):
@@ -38,6 +41,15 @@ class MyXThing(XThing):
         self._streaming = False
         self._delay = 0.1
         self._xyz = user1
+
+        xyzFilters: VirtualFilterwheel = self.find_component(MOCK_COLOR_FILTERWHEEL)
+        xyzFilters.set_position_mapping({0: "X", 1: "Y", 2: "Z", 3: "CLEAR"})
+        xyzFilters.open()
+        ndFilters: VirtualFilterwheel = self.find_component(MOCK_ND_FILTERWHEEL)
+        ndFilters.set_position_mapping(
+            {0: "CLEAR", 1: "ND1", 2: "ND2", 3: "ND3", 4: "BLOCK"}
+        )
+        ndFilters.open()
 
         return self
 
@@ -121,11 +133,38 @@ class MyXThing(XThing):
         logger.info("func end")
         return s
 
+    @xproperty(model=StrictStr)
+    def color_filter(self) -> StrictStr:
+        xyzFilters: VirtualFilterwheel = self.find_component(MOCK_COLOR_FILTERWHEEL)
+        filter = xyzFilters.get_position_by_name()
+
+        return filter
+
+    @xaction(input_model=StrictStr)
+    def move_color_filter(self, color_filter, apn, ct, logger):
+        xyzFilters: VirtualFilterwheel = self.find_component(MOCK_COLOR_FILTERWHEEL)
+        xyzFilters.set_position_by_name(color_filter)
+
+    @xproperty(model=StrictStr)
+    def nd_filter(self) -> StrictStr:
+        ndFilters: VirtualFilterwheel = self.find_component(MOCK_ND_FILTERWHEEL)
+        filter = ndFilters.get_position_by_name()
+        return filter
+
+    @xaction(input_model=StrictStr)
+    def move_nd_filter(self, nd_filter, apn, ct, logger):
+        ndFilters: VirtualFilterwheel = self.find_component(MOCK_ND_FILTERWHEEL)
+        ndFilters.set_position_by_name(nd_filter)
+
 
 camera = VirtualCamera()
+xyzFilterwheel = VirtualFilterwheel("XYZ")
+ndFilterwheel = VirtualFilterwheel("ND")
 
 myxthing = MyXThing("_xthings._tcp.local.", "myxthing._xthings._tcp.local.")
 myxthing.add_component(camera, MOCK_CAMERA_NAME)
+myxthing.add_component(xyzFilterwheel, MOCK_COLOR_FILTERWHEEL)
+myxthing.add_component(ndFilterwheel, MOCK_ND_FILTERWHEEL)
 
 xthings_server = XThingsServer(settings_folder="./settings")
 xthings_server.add_xthing(myxthing, "/myxthing")

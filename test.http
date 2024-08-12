@@ -26,4 +26,21 @@ PUT http://localhost:8000/myxthing/xyz
 GET http://localhost:8000/myxthing
 
 ### Get invocation by id
-GET http://localhost:8000/invocations/6b16d825-2a65-45b5-a487-7a98bd6556f1
+GET http://localhost:8000/invocations/60aa8494-914c-4674-b6fe-bf3adabe7e84
+
+### Get Color Filter
+GET http://localhost:8000/myxthing/color_filter
+
+### Move Color Filter
+POST http://localhost:8000/myxthing/move_color_filter
+
+"Z"
+
+
+### Get ND Filter
+GET http://localhost:8000/myxthing/nd_filter
+
+### Move ND Filter
+POST http://localhost:8000/myxthing/move_nd_filter
+
+"ND1"
