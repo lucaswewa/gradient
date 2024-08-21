@@ -4,6 +4,7 @@ import numpy as np
 import cv2 as cv
 from .camera_protocol import CameraProtocol
 from .camera_protocol import CameraState
+from .camera_protocol import PixelFormat
 from typing import Set
 
 
@@ -13,7 +14,8 @@ class VirtualCamera(CameraProtocol):
         self._lock = threading.RLock()
         self._frame = None
         self._status = CameraState.CLOSED
-        self._exposure = None
+        self._pixel_format = PixelFormat.MONO12
+        self._exposure = 5.0
         self._cb: Set[callable] = set()
         self._cbb = None
         self._delay = 0.002
@@ -93,6 +95,12 @@ class VirtualCamera(CameraProtocol):
 
     def get_state(self):
         return self._status
+
+    def get_pixel_format(self) -> PixelFormat:
+        return self._pixel_format
+
+    def set_pixel_format(self, format: PixelFormat):
+        self._pixel_format = format
 
     def get_exposure(self) -> float:
         return self._exposure

@@ -70,6 +70,28 @@ class MyXThing(XThing):
     def xyz(self, v):
         self._xyz = v
 
+    @xproperty(model=StrictFloat)
+    def exposure_time(self):
+        camera: VirtualCamera = self.find_component(MOCK_CAMERA_NAME)
+        exposure = camera.get_exposure()
+        return exposure
+
+    @exposure_time.setter
+    def exposure_time(self, exposure):
+        camera: VirtualCamera = self.find_component(MOCK_CAMERA_NAME)
+        camera.set_exposure(exposure)
+
+    @xproperty(model=StrictStr)
+    def pixel_format(self):
+        camera: VirtualCamera = self.find_component(MOCK_CAMERA_NAME)
+        format = camera.get_pixel_format()
+        return format
+
+    @pixel_format.setter
+    def pixel_format(self, format):
+        camera: VirtualCamera = self.find_component(MOCK_CAMERA_NAME)
+        camera.set_pixel_format(format)
+
     @xaction()
     def open_camera(
         self, apn: ActionProgressNotifier, ct: CancellationToken, logger: logging.Logger
