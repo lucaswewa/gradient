@@ -65,7 +65,7 @@ class VirtualCamera(CameraProtocol):
                             cb(self._frame.copy())
                 except Exception as e:
                     print(f"ah! {e}")
-                if idle_step < 30:
+                if idle_step < 20:
                     idle_step += 1
                 else:
                     self._status = CameraState.CAPTURING2
@@ -77,7 +77,7 @@ class VirtualCamera(CameraProtocol):
                             cb(self._frame.copy())
                 except Exception as e:
                     print(f"ah! {e}")
-                if idle_step < 50:
+                if idle_step < 30:
                     idle_step += 1
                 else:
                     self._status = CameraState.STREAMING
