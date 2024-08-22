@@ -9,7 +9,7 @@ class DarkFieldCalibration(BaseModel):
     binning_x: int = 1
     binning_y: int = 1
     image_width: int = 0
-    image_width: int = 0
+    image_height: int = 0
     image_data: Any = None
 
 
