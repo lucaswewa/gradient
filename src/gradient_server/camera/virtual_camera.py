@@ -7,6 +7,10 @@ from .camera_protocol import CameraState
 from .camera_protocol import PixelFormat
 from typing import Set
 
+CAM_WIDTH = 6400
+CAM_HEIGHT = 4800
+BINNING = 4
+
 
 class VirtualCamera(CameraProtocol):
     def __init__(self):
@@ -26,35 +30,46 @@ class VirtualCamera(CameraProtocol):
 
         while self._status != CameraState.CLOSED:
             if self._status == CameraState.STREAMING:
-                frame = np.random.rand(480, 640, 3) * 255
+                frame = (
+                    np.random.rand(CAM_HEIGHT // BINNING, CAM_WIDTH // BINNING, 3) * 255
+                )
                 self._frame = frame.astype(np.uint8)
                 self._frame = cv.cvtColor(self._frame, cv.COLOR_BGR2GRAY)
+                print("streaming image generated")
                 try:
                     with self._lock:
                         for cb in self._cb:
-                            cb(self._frame.copy())
+                            cb(cv.resize(self._frame.copy(), (640, 480)))
+                            print("streaming image callback invoked")
                 except Exception as e:
                     print(f"ah! {e}")
             elif self._status == CameraState.CAPTURING1:
-                frame = np.random.rand(480, 640, 3) * 0
+                frame = (
+                    np.random.rand(CAM_HEIGHT // BINNING, CAM_WIDTH // BINNING, 3) * 0
+                )
                 self._frame = frame.astype(np.uint8)
                 self._frame = cv.cvtColor(self._frame, cv.COLOR_BGR2GRAY)
+                print("captured 1 image generated")
                 try:
                     with self._lock:
                         for cb in self._cb:
-                            cb(self._frame.copy())
+                            cb(cv.resize(self._frame.copy(), (640, 480)))
+                            print("captured image 1 callback invoked")
                 except Exception as e:
                     print(f"ah! {e}")
                 self._status = CameraState.IDLE1
             elif self._status == CameraState.CAPTURING2:
-                frame = np.random.rand(480, 640, 3) * 255
+                frame = np.random.rand(CAM_HEIGHT, CAM_WIDTH, 3) * 255
                 self._frame = frame.astype(np.uint8)
+                print("captured image 2 generated")
                 try:
                     with self._lock:
                         for cb in self._cb:
-                            cb(self._frame.copy())
+                            cb(cv.resize(self._frame.copy(), (640, 480)))
                         if self._cbb is not None:
-                            self._cbb(self._frame.copy())
+                            self._cbb(cv.resize(self._frame.copy(), (640, 480)))
+
+                        print("captured image 2 callback invoked")
                 except Exception as e:
                     print(f"ah! {e}")
                 self._status = CameraState.IDLE2
@@ -62,7 +77,7 @@ class VirtualCamera(CameraProtocol):
                 try:
                     with self._lock:
                         for cb in self._cb:
-                            cb(self._frame.copy())
+                            cb(cv.resize(self._frame.copy(), (640, 480)))
                 except Exception as e:
                     print(f"ah! {e}")
                 if idle_step < 20:
@@ -74,7 +89,7 @@ class VirtualCamera(CameraProtocol):
                 try:
                     with self._lock:
                         for cb in self._cb:
-                            cb(self._frame.copy())
+                            cb(cv.resize(self._frame.copy(), (640, 480)))
                 except Exception as e:
                     print(f"ah! {e}")
                 if idle_step < 30:
