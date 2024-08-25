@@ -2,14 +2,13 @@ from xthings import XThing, xproperty, xaction
 from xthings.descriptors import PngImageStreamDescriptor
 from xthings.server import XThingsServer
 from xthings.action import CancellationToken, ActionProgressNotifier
-from pydantic import BaseModel, StrictFloat, StrictStr, StrictInt
+from pydantic import BaseModel, StrictFloat, StrictStr
 from fastapi.responses import HTMLResponse
 import numpy as np
 import time
 import logging
 import threading
-from typing import Any
-import datetime
+from typing import List
 
 
 from ..camera.virtual_camera import VirtualCamera
@@ -307,6 +306,130 @@ html = """
 @app.get("/wsclient", tags=["websockets"])
 async def get():
     return HTMLResponse(html)
+
+
+from ..models.calibration import (
+    DarkFieldCalibration,
+    DarkFieldCalibrationCreate,
+    DarkFieldCalibrationUpdate,
+)
+
+
+######## Experimental endpoints
+import io
+import time
+from fastapi import FastAPI, HTTPException
+from fastapi.params import Depends
+from sqlalchemy.orm import Session
+from ..storage.database import engine, SessionLocal
+from ..storage import crud, schemas
+
+schemas.Base.metadata.create_all(bind=engine)
+
+
+# def adapt_array(arr):
+#     """
+#     http://stackoverflow.com/a/31312102/190597 (SoulNibbler)
+#     """
+#     out = io.BytesIO()
+#     np.save(out, arr)
+#     out.seek(0)
+#     return sqlite3.Binary(out.read())
+
+
+# def convert_array(text):
+#     out = io.BytesIO(text)
+#     out.seek(0)
+#     return np.load(out)
+
+
+# sqlite3.register_adapter(np.ndarray, adapt_array)
+# sqlite3.register_converter("array", convert_array)
+
+x = np.random.randn(56000000).reshape(8000, 7000)
+x = x / 10
+x = x + 0.5
+x[x < 0] = 0
+x[x > 1] = 1
+
+x = x * (1 << 12)
+x = x.astype(np.uint16)
+
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@app.get("/darkfieldcallibrations", response_model=List[DarkFieldCalibration])
+async def list_dfc(limit: int = 100, offset: int = 0, db: Session = Depends(get_db)):
+    items = crud.list_darkfieldcalibrationitems(db, offset, limit)
+    for i in range(len(items)):
+        items[i].image_data = f"adsf_{i}"
+    return items
+
+
+@app.post("/darkfieldcalibrations", response_model=DarkFieldCalibration)
+async def create_dfc(data: DarkFieldCalibrationCreate, db: Session = Depends(get_db)):
+    s = time.time()
+
+    # convert np.ndarray to byte array
+    memfile = io.BytesIO()
+    np.save(memfile, x)
+    image = memfile.getvalue()
+    data.image_data = image
+    item = crud.create_darkfieldcalibrationitem(db, data)
+    e = time.time()
+    print(e - s)
+
+    # use dummy data for HTTP response
+    item.image_data = "data:image/;base64,kdjksdfjlsfjskl"
+
+    return item
+
+
+@app.get("/darkfieldcallibrations/{item_id}", response_model=DarkFieldCalibration)
+async def retrieve_dfc(item_id: int, db: Session = Depends(get_db)):
+    item = crud.retrieve_darkfieldcalibrationitem(db, item_id)
+    if item is None:
+        raise HTTPException(status_code=404)
+
+    # convert bytet array to np.ndarray
+    memfile = io.BytesIO()
+    data = item.image_data
+    memfile.write(data)
+    memfile.seek(0)
+    arr = np.load(memfile)
+    print(arr.mean())
+
+    # use dummy data for HTTP response
+    dfc = DarkFieldCalibration.model_validate(item)
+    dfc.image_data = "data:image/;base64,kdjksdfjlsfjskl"
+    return dfc
+
+
+@app.put("/darkfieldcallibrations/{item_id}", response_model=DarkFieldCalibration)
+async def update_dfc(
+    id: int, data: DarkFieldCalibrationUpdate, db: Session = Depends(get_db)
+):
+    item = crud.update_darkfieldcalibrationitem(db, id, data)
+    if item is None:
+        raise HTTPException(status_code=404)
+    item.image_data = "data:image/;base64,kdjksdfjlsfjskl"
+    return item
+
+
+@app.delete("/darkfieldcallibrations/{item_id}", status_code=204)
+async def drop_dfc(item_id: int, db: Session = Depends(get_db)):
+    crud.drop_darkfieldcalibrationitem(db, item_id)
+    return None
+
+
+######## Experimental endpoints
 
 
 def gradient_serve():

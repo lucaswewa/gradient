@@ -1,16 +1,39 @@
 from pydantic import BaseModel
-from typing import Any
+from typing import Any, Optional
+
+from datetime import datetime
 
 
-class DarkFieldCalibration(BaseModel):
+class DarkFieldCalibrationBase(BaseModel):
     name: str = ""
     display_name: str = ""
     description: str = ""
+
     binning_x: int = 1
     binning_y: int = 1
-    image_width: int = 0
-    image_height: int = 0
-    image_data: Any = None
+
+    image_width: int
+    image_height: int
+
+    image_data: Optional[bytes] = None
+
+
+class DarkFieldCalibration(DarkFieldCalibrationBase):
+    id: int
+
+    time_created: Optional[datetime] = None
+    time_updated: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DarkFieldCalibrationCreate(DarkFieldCalibrationBase):
+    pass
+
+
+class DarkFieldCalibrationUpdate(DarkFieldCalibrationBase):
+    pass
 
 
 class FlatFieldCalibration(BaseModel):
