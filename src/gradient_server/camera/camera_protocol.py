@@ -15,8 +15,12 @@ class CameraState(str, Enum):
     STREAMING = "streaming"
     CAPTURING1 = "capturing1"
     CAPTURING2 = "capturing2"
+    CAPTURING3 = "capturing3"
+    CAPTURING4 = "capturing4"
     IDLE1 = "idle1"
     IDLE2 = "idle2"
+    IDLE3 = "idle3"
+    IDLE4 = "idle4"
 
 
 class CameraProperties(BaseModel): ...
