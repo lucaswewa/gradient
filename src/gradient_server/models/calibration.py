@@ -33,7 +33,7 @@ class DarkFieldCalibrationCreate(DarkFieldCalibrationBase):
 
 
 class DarkFieldCalibrationUpdate(DarkFieldCalibrationBase):
-    pass
+    id: int
 
 
 class FlatFieldCalibration(BaseModel):

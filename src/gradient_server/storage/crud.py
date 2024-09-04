@@ -40,6 +40,9 @@ def update_darkfieldcalibrationitem(
     if isinstance(item, int):
         item = retrieve_darkfieldcalibrationitem(db, item)
 
+    if item is None:
+        return None
+
     # bug: we need change fields set in the data only
     for key, value in data:
         if value is not None:

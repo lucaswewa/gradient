@@ -1,26 +1,50 @@
-from xthings import XThing, xproperty, xaction
+from xthings import XThing, xproperty, xaction, xlcrud
 from xthings.descriptors import PngImageStreamDescriptor
 from xthings.server import XThingsServer
 from xthings.action import CancellationToken, ActionProgressNotifier
-from pydantic import BaseModel, StrictFloat, StrictStr
+from pydantic import BaseModel, StrictFloat, StrictStr, StrictInt
 from fastapi.responses import HTMLResponse
 import numpy as np
 import time
 import logging
 import threading
 from typing import List
-
+import uuid
 
 from ..camera.virtual_camera import VirtualCamera
 from ..filterwheel.virtual_filterwheel import VirtualFilterwheel
 from ..stage.virtual_stage import VirtualStage
 from ..prescription.virtual_rxcompensation import VirtualRxCompensation
+from ..models.calibration import (
+    DarkFieldCalibration,
+    DarkFieldCalibrationCreate,
+    DarkFieldCalibrationUpdate,
+)
 
 MOCK_CAMERA_NAME = "xthings.components.cameras.mockcamera"
 MOCK_COLOR_FILTERWHEEL = "xthings.components.filterwheels.mockColorFilters"
 MOCK_ND_FILTERWHEEL = "xthings.components.filterwheels.mockNDFilters"
 MOCK_STAGE = "xthings.components.stages.mockStage"
 MOCK_RX_COMPENSATION = "xthings.components.prescription.mockRxCompensation"
+
+import io
+import time
+from fastapi import FastAPI, HTTPException
+from fastapi.params import Depends
+from sqlalchemy.orm import Session
+from ..storage.database import engine, SessionLocal
+from ..storage import crud, schemas
+
+schemas.Base.metadata.create_all(bind=engine)
+
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 class User(BaseModel):
@@ -242,6 +266,69 @@ class MyXThing(XThing):
         )
         rxCompensation.move_cylindrical_rx_axis(cyl_axis)
 
+    @xproperty(model=List[DarkFieldCalibration])
+    def darkfieldcalibrations(self):
+        db = get_db()
+        items = crud.list_darkfieldcalibrationitems(next(db), 0, 100)
+        for item in items:
+            item.image_data = b"test"
+
+        return items
+
+    @xaction(input_model=DarkFieldCalibrationCreate, output_model=DarkFieldCalibration)
+    def create_darkfieldcalibration(self, dfc, apn, ct, logger):
+        db = get_db()
+        s = time.time()
+
+        # convert np.ndarray to byte array
+        memfile = io.BytesIO()
+        np.save(memfile, x)
+        image = memfile.getvalue()
+        dfc.image_data = image
+        item = crud.create_darkfieldcalibrationitem(next(db), dfc)
+        e = time.time()
+        print(e - s)
+
+        # use dummy data for HTTP response
+        item.image_data = "data:image/;base64,kdjksdfjlsfjskl"
+        dfc.image_data = b"xyz"
+        return DarkFieldCalibration.model_validate(item)
+
+    @xaction(input_model=DarkFieldCalibrationUpdate, output_model=DarkFieldCalibration)
+    def update_darkfieldcalibration(self, dfc, apn, ct, logger):
+        db = get_db()
+        item = crud.update_darkfieldcalibrationitem(next(db), dfc.id, dfc)
+        if item is None:
+            raise HTTPException(status_code=404)
+        item.image_data = "data:image/;base64,kdjksdfjlsfjskl"
+        return DarkFieldCalibration.model_validate(item)
+
+    @xaction(input_model=StrictInt)
+    def delete_darkfieldcalibration(self, id, apn, ct, logger):
+        db = get_db()
+        crud.drop_darkfieldcalibrationitem(next(db), id)
+
+    @xlcrud(item_model=StrictStr)
+    def ffc(self):
+        return {}
+
+    @ffc.create_func
+    def ffc(self, v: str):
+        id = uuid.uuid4()
+        return {"id": id, "v": v}
+
+    @ffc.retrieve_func
+    def ffc(self, id: uuid.UUID):
+        return {"id": id, "v": "vvvvv"}
+
+    @ffc.update_func
+    def ffc(self, id: uuid.UUID, v: str):
+        return {"id": id, "v": v + "_updated"}
+
+    @ffc.delete_func
+    def ffc(self, id: uuid.UUID):
+        return {"id": id}
+
 
 camera = VirtualCamera()
 xyzFilterwheel = VirtualFilterwheel("XYZ Filters")
@@ -308,23 +395,7 @@ async def get():
     return HTMLResponse(html)
 
 
-from ..models.calibration import (
-    DarkFieldCalibration,
-    DarkFieldCalibrationCreate,
-    DarkFieldCalibrationUpdate,
-)
-
-
 ######## Experimental endpoints
-import io
-import time
-from fastapi import FastAPI, HTTPException
-from fastapi.params import Depends
-from sqlalchemy.orm import Session
-from ..storage.database import engine, SessionLocal
-from ..storage import crud, schemas
-
-schemas.Base.metadata.create_all(bind=engine)
 
 
 # def adapt_array(arr):
@@ -354,15 +425,6 @@ x[x > 1] = 1
 
 x = x * (1 << 12)
 x = x.astype(np.uint16)
-
-
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @app.get("/darkfieldcallibrations", response_model=List[DarkFieldCalibration])
