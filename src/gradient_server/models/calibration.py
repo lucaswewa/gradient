@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Any, Optional
+from uuid import UUID
 
 from datetime import datetime
 
@@ -15,7 +16,7 @@ class DarkFieldCalibrationBase(BaseModel):
     image_width: int
     image_height: int
 
-    image_data: Optional[bytes] = None
+    image_data: Optional[UUID] = None
 
 
 class DarkFieldCalibration(DarkFieldCalibrationBase):

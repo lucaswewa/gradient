@@ -7,7 +7,10 @@ from ..models.calibration import (
 )
 
 from typing import Union, List, Optional
+import uuid
+import numpy as np
 
+from PIL import Image
 
 def list_darkfieldcalibrationitems(
     db: Session, offset: int = 0, limit: int = 100
@@ -15,10 +18,18 @@ def list_darkfieldcalibrationitems(
     return db.query(DarkFieldCalibrationItem).offset(offset).limit(limit).all()
 
 
+import cv2
+
 def create_darkfieldcalibrationitem(
-    db: Session, data: DarkFieldCalibrationCreate
+    db: Session, data: DarkFieldCalibrationCreate, x
 ) -> DarkFieldCalibrationItem:
     db_item = DarkFieldCalibrationItem(**data.model_dump())
+    db_item.image_data = uuid.uuid4()
+    np.save(f"data/{db_item.image_data}.npy", x)
+    tn = cv2.resize(x, (360, 320))
+    cv2.imwrite(f"data/{db_item.image_data}.png", tn)
+
+    # cv2.imwrite(f"{db_item.image_data}.tif", x)    
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
