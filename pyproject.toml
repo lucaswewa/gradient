@@ -1,0 +1,158 @@
+[project]
+name = "gradient-server"
+
+version = "3.0.0-alpha0"
+authors = [
+  { name="Lucas Wang", email="lucas.wang@tetaprecision.com" },
+]
+description = "Back-end code for the Gradient Server"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT",
+  "Operating System :: OS Independent",
+]
+dependencies = [
+  "labthings-fastapi==0.0.14",
+  "camera-stage-mapping ~= 0.1.10",
+  "opencv-python ~= 4.13.0.92",
+  "openflexure-stitching[libvips]==0.2.3",
+  "pillow ~= 12.1.1",
+  "anyio ~= 4.12.1",
+  "numpy ~= 2.4.2",
+  "scipy ~=1.17.0",
+  "piexif",
+  "pydantic ~= 2.10.6",
+  "simplejpeg >= 1.9.0",
+  "semver ~= 3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff~=0.15.1",
+  "mypy[reports]",
+  "pytest",
+  "pytest-cov",
+  "pytest-mock==3.15",
+  "matplotlib~=3.10",
+  "hypothesis",
+  "pydoctor~=25.10",
+  "codespell~=2.4",
+#   "python-gitlab~=6.2"
+]
+
+[project.scripts]
+gradient-server = "gradient_server.server:serve_from_cli"
+
+
+[project.urls]
+"Homepage" = "https://github.com"
+"Bug Tracker" = "https://github.com/lucaswewa/gradient/issues"
+"Source" = "https://github.com/lucaswewa/gradient.git"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+    "--cov=gradient_server",
+    "--cov-report=term",
+    "--cov-report=xml:coverage.xml",
+    "--cov-report=html:htmlcov",
+    "--junitxml=report.xml",
+]
+
+norecursedirs = [".git", "build", "node_modules"]
+pythonpath = ["."]
+testpaths = ["tests/unit_tests"]
+
+[tool.ruff.format]
+# Use native line endings for all files
+line-ending = "native"
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", #pycodestyle warnings
+    "F", # PyFlakes
+    "PL", # Pylint (a subset of, catches far less than pylint does)
+    "B", # Flake8 bugbear
+    "A", # Flake8 builtins checker
+    "C", # Flake8 comprehensions
+    "FIX", #TODO/FIXME's in code. These should be added during development for ongoing tasks.
+           # If they are not fixed before merge they should be converted to GitLab issues
+    "LOG", # Flake8 logging issues (pedantic logger formatting issues can be added with "G")
+    "T20", # Warns for print statements, production code should log
+    "PT", # pytest linting
+    "RET", # Consistent clear return statements
+    "RSE", # Raise parentheses
+    "SIM", # Simplifications detected
+    "ARG", # unused arguments
+    "C90", # McCabe complexity!
+    "NPY", # Numpy linting
+    "N", # PEP8 naming
+    "D", # Docstring checks
+    "ERA001", # Commented out code!
+    "S101",# No asserts!
+    "ANN", # Type annotations
+    "I", # Import sorting
+]
+
+ignore = [
+    "E501", # Ignore long lines for now
+    "D203",  # incompatible with D204
+    "D213",  # incompatible with D212
+    "D400",  # A stricter version of #415 that doesn't allow !
+    "ANN401", # Disalows Any, Any is needed at times, Once MyPy is running Any will be
+              # handled appropriately
+    "PLR2004", # Ignore magic values in comparison for now. It doesn't seem we can set
+               # allowed magic values and a number of our magic values are not really
+               # magic (such as 255 when doing uint8 maths)
+    "SIM105", # Not enforcing use of `contextlib.suppress(NotConnectedToServerError)`
+              # instead of `try`-`except`-`pass`
+]
+
+[tool.ruff.lint.per-file-ignores]
+# All testing dirs
+"{tests}/**" = [
+    "B018", # Complaining about useless attribute access in tests, but we need them to check errors are raised
+    "ANN", # Tests are not typehinted for fixtures etc
+    "S101", # Allow asserts in tests
+    "T20", # Allow prints in tests
+    "LOG015", # Allow tests to use the root logger.
+    "PLC0415", # Allow tests to import later as this is needed for mocking
+]
+# Developer CLI scripts
+"{pull_webapp,picamera_tests,change_log_helper}.py" = [
+    "T20", # Printing is normal in small CLI scripts
+]
+
+[tool.ruff.lint.pydocstyle]
+# This lets the D401 checker understand that decorated thing properties and thing
+# settings act like properties so should be documented as such.
+property-decorators = ["labthings_fastapi.property", "labthings_fastapi.setting"]
+
+[tool.ruff.lint.pylint]
+max-args = 7
+max-positional-args = 5
+
+
+[tool.ruff.lint.isort]
+section-order = ["future", "standard-library", "third-party", "ours", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+ours = [
+    "labthings_fastapi",
+]
