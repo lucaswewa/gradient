@@ -1,23 +1,17 @@
 ### projector_r
-POST http://localhost:5000/projector_r/set_led
+PUT http://localhost:5000/projector_r/blob_brightness
 
-{
-    "led_on": true
-}
+0.1
 
 ### projector_g
-POST http://localhost:5000/projector_g/set_led
+PUT http://localhost:5000/projector_g/blob_brightness
 
-{
-    "led_on": false
-}
+0.1
 
 ### projector_b
-POST http://localhost:5000/projector_b/set_led
+PUT http://localhost:5000/projector_b/blob_brightness
 
-{
-    "led_on": false
-}
+0.1
 
 ### camera
 POST http://localhost:5000/camera/start_streaming
@@ -36,3 +30,13 @@ POST http://localhost:5000/camera/set_shutter
 {
     "shutter_on": true
 }
+
+### camera
+PUT http://localhost:5000/camera/objective
+
+4
+
+### camera
+PUT http://localhost:5000/camera/exposure_gain
+
+11
