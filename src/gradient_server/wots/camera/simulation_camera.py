@@ -32,28 +32,12 @@ LOGGER = logging.getLogger(__name__)
 # higher related to a faster movement
 RATIO = (2, 2, 0.07)
 
-# Some colour variation, for bg detect.
-BG_COLOR = [220, 215, 217]
-
 # Random Number Generator
 RNG = np.random.default_rng()
 
 
 DOWNSAMPLE = 2
 LOW_MAG_DOWNSAMPLE = 8
-# Upsample for sprites and then downsample to create sharp edges for each sprite
-# as these are small and calculated once there is almost no performance penalty
-# for a nice gain in quality.
-SPRITE_UPSAMPLE = 4
-
-# A list of 6 digit hex colour codes separated by ;. Allow a trailing ;
-# For example, OpenFlexure pink would be #C5247F;
-COLOUR_LIST_REGEX = re.compile(
-    r"^\s*(#[0-9a-fA-F]{6})\s*(?:;\s*(#[0-9a-fA-F]{6})\s*)*;?\s*$"
-)
-# regex to separate R, G and B from a 6 digit hex code with preceding #
-COLOUR_REGEX = re.compile(r"^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$")
-
 
 @overload
 def _downsample_shape(
@@ -75,36 +59,6 @@ def _downsample_shape(
     if len(shape) == 3:
         return (int(shape[0] // factor), int(shape[1] // factor), shape[2])
     raise ValueError("Shape should be a 2 or 3 element tuple.")
-
-
-def colour_str_to_colour(colour_str: str) -> tuple[int, int, int]:
-    """Convert a colour string into RGB colour values.
-
-    :param colour_str: Should be a hex colour such as #33aa33 or a list of hex
-        colours separated by semicolons (with optional spaces).
-    :return: The colour as a tuple of 3 integers from 0 to 255 in value
-    :raises ValueError: If the hex string is not valid. This should never happen if the
-        user enters a bad colour string as the colour property setter checks the
-        whole string regex.
-    """
-    if ";" in colour_str:
-        colours = colour_str.split(";")
-        if len(colours) > 1 and colours[-1].strip() == "":
-            colours.pop(-1)
-        single_colour_str = colours[RNG.integers(0, len(colours))]
-    else:
-        single_colour_str = colour_str
-    single_colour_str = single_colour_str.lower().strip()
-    colour_match = COLOUR_REGEX.match(single_colour_str)
-    if colour_match is None:
-        raise ValueError(
-            f"{colour_str} is not a valid colour. Please use HTML hex notation."
-        )
-
-    r = int("0x" + colour_match.group(1), 16)
-    g = int("0x" + colour_match.group(2), 16)
-    b = int("0x" + colour_match.group(3), 16)
-    return r, g, b
 
 
 class SimulatedCamera(BaseCamera):
@@ -151,46 +105,21 @@ class SimulatedCamera(BaseCamera):
         self.frame_interval = frame_interval
         self._capture_thread: Optional[Thread] = None
         self._capture_enabled = False
-        self.generate_sprites()
         # Whether the LED is on
         self.shutter_on = True
-
-    repeating: bool = lt.property(default=False)
+        self._exposure_gain = 1.5
 
     _blob_density: int = 400
 
     @lt.property
-    def blob_density(self) -> int:
-        """The number of blobs per million pixels."""
-        return self._blob_density
-
-    @blob_density.setter
-    def _set_blob_density(self, value: int) -> None:
-        self._blob_density = value
-        if self._capture_enabled:
-            self.generate_canvas()
-
-    _colour: str = "#b937b9"
-
-    @lt.property
-    def colour(self) -> str:
-        """The colour of the blobs as a HTML hex string.
-
-        The string can either be a single colour (e.g. "#c5247f") or a list of
-        colours separated by semicolons (e.g. "#c5247f; #b937b9"). Additional
-        spaces are allowed between colours.
+    def exposure_gain(self) -> float:
+        """The exposure and gain of the camera.
         """
-        return self._colour
+        return self._exposure_gain
 
-    @colour.setter
-    def _set_colour(self, colour_value: str) -> None:
-        if COLOUR_LIST_REGEX.match(colour_value) is None:
-            self.logger.warning(f"{colour_value} is not a valid colour string.")
-            return
-
-        self._colour = colour_value
-        if self._capture_enabled:
-            self.generate_canvas()
+    @exposure_gain.setter
+    def _set_exposure_gain(self, exposure_gain_value: float) -> None:
+        self._exposure_gain = exposure_gain_value
 
     @lt.property
     def calibration_required(self) -> bool:
@@ -198,128 +127,6 @@ class SimulatedCamera(BaseCamera):
         if self.background_detector is None:
             return True
         return not self.background_detector.ready
-
-    def generate_sprites(self) -> None:
-        """Generate sprites to populate the image."""
-        sprite_sizes = [10, 21, 36, 40, 50]
-        sprite_sizes = [s * SPRITE_UPSAMPLE for s in sprite_sizes]
-        self.sprites = []
-
-        block_size = self.glyph_size * DOWNSAMPLE * SPRITE_UPSAMPLE
-        channel_block = np.zeros((block_size, block_size))
-        x = np.arange(channel_block.shape[0])
-        y = np.arange(channel_block.shape[1])
-        # 2D grid of radii
-        r_coord = np.sqrt(
-            (x[:, None] - np.mean(x)) ** 2 + (y[None, :] - np.mean(y)) ** 2
-        )
-
-        for sprite_size in sprite_sizes:
-            # Mask of where this sprite is
-            sprite_mask = r_coord < sprite_size
-            # Calculate a sharp edged circle with value varying from 0 in centre to 255
-            # at the edge
-            sprite_px = r_coord[sprite_mask]
-            sprite_px -= np.min(sprite_px)
-            sprite_px /= np.max(sprite_px)
-            sprite = channel_block.copy()
-            sprite[sprite_mask] = 255 * sprite_px
-
-            # Convert to uint8
-            sprite = sprite.astype(np.uint8)
-            # Convert to PIL (and back) to resize then append to list of sprites
-            sprite_pil = Image.fromarray(sprite)
-            sprite_pil = sprite_pil.resize(
-                (self.glyph_size, self.glyph_size), Image.Resampling.BILINEAR
-            )
-            # Convert back and ensure all edges are zero as these are repeated at sample
-            # edge
-            sprite = np.array(sprite_pil)
-            sprite[0, :] = 0
-            sprite[-1, :] = 0
-            sprite[:, 0] = 0
-            sprite[:, -1] = 0
-            self.sprites.append(sprite)
-
-    def generate_blobs(self, n_blobs: int = 1000) -> None:
-        """Generate coordinates of blobs and their sizes, centered around (0,0).
-
-        Note that blob density is determined by sample size and n_blobs, and for larger
-        samples n_blobs will need increasing to keep a high level of sample coverage per
-        field of view.
-
-        :param n_blobs: The number of blobs to generate.
-        """
-        self.blobs = np.zeros((n_blobs, 3))
-        w = self.glyph_size
-
-        self.blobs[:, 0] = RNG.uniform(w // 2, self.canvas_shape[1] - w // 2, n_blobs)
-        self.blobs[:, 1] = RNG.uniform(w // 2, self.canvas_shape[0] - w // 2, n_blobs)
-        self.blobs[:, 2] = RNG.choice(len(self.sprites), n_blobs)
-
-    def generate_canvas(self) -> None:
-        """Generate a canvas with generated blobs centered at the middle.
-
-        Canvas is int16 so that random noise can be added to simulation image before
-        changing to unit8 to stop wrapping.
-        """
-        n_pixels = self.canvas_shape[0] * self.canvas_shape[1] * DOWNSAMPLE**2
-        self.generate_blobs(int(self.blob_density * 1e-6 * n_pixels))
-        self.blank_canvas = np.ones(self.canvas_shape, dtype=np.int16)
-        self.blank_canvas[:, :, 0] *= BG_COLOR[0]
-        self.blank_canvas[:, :, 1] *= BG_COLOR[1]
-        self.blank_canvas[:, :, 2] *= BG_COLOR[2]
-        self.blank_canvas_low_mag = np.ones(self.low_mag_canvas_shape, dtype=np.int16)
-        self.blank_canvas_low_mag[:, :, 0] *= BG_COLOR[0]
-        self.blank_canvas_low_mag[:, :, 1] *= BG_COLOR[1]
-        self.blank_canvas_low_mag[:, :, 2] *= BG_COLOR[2]
-        new_canvas = self.blank_canvas.copy()
-
-        for blob_x, blob_y, sprite_index in self.blobs:
-            self.draw_sprite_on_canvas(
-                new_canvas, self.sprites[int(sprite_index)], int(blob_y), int(blob_x)
-            )
-        self.canvas = np.clip(new_canvas, 0, 255)
-        # Create a further downsized canvas for low mag. This has a minimal memory
-        # footprint but speeds up indexing the canvas when simulation uses low magnification
-        # objectives
-        self.canvas_low_mag = fast_resize_and_blur(
-            self.canvas, sigma=0, shape=self.low_mag_canvas_shape
-        )
-        # Check edge pixels are blank as these are repeated for finite samples.
-        self.canvas_low_mag[0, :, :] = self.blank_canvas_low_mag[0, :, :]
-        self.canvas_low_mag[-1, :, :] = self.blank_canvas_low_mag[-1, :, :]
-        self.canvas_low_mag[:, 0, :] = self.blank_canvas_low_mag[:, 0, :]
-        self.canvas_low_mag[:, -1, :] = self.blank_canvas_low_mag[:, -1, :]
-
-    def draw_sprite_on_canvas(
-        self, canvas: np.ndarray, sprite: np.ndarray, centre_y: int, centre_x: int
-    ) -> None:
-        """Place one sprite on canvas at given centre coordinates.
-
-        Note that self.canvas is modified in place.
-
-        :param sprite: The sprite array to place on the canvas.
-        :param centre_y: The y coordinate to place the centre of the sprite.
-        :param centre_x: The x coordinate to place the centre of the sprite.
-        """
-        canvas_h, canvas_w, _ = canvas.shape
-        sprite_h, sprite_w = sprite.shape
-
-        sprite_f = sprite.astype(float) / 255
-        r, g, b = colour_str_to_colour(self.colour)
-        sprite_r = (255 - r) * sprite_f
-        sprite_g = (255 - g) * sprite_f
-        sprite_b = (255 - b) * sprite_f
-        sprite_rgb = np.stack([sprite_r, sprite_g, sprite_b], axis=2)
-
-        # Canvas region containing the sprite
-        top = max(centre_y - sprite_h // 2, 0)
-        left = max(centre_x - sprite_w // 2, 0)
-        bottom = min(centre_y + (sprite_h - sprite_h // 2), canvas_h)
-        right = min(centre_x + (sprite_w - sprite_w // 2), canvas_w)
-
-        canvas[top:bottom, left:right] -= sprite_rgb.astype("int16")
 
     def generate_image(self, pos: tuple[int, int, int]) -> Image.Image:
         """Generate an image with blobs based on supplied coordinates.
@@ -331,14 +138,18 @@ class SimulatedCamera(BaseCamera):
 
         objective_downsample = self.objective / 40
         if objective_downsample >= 0.4:
-            canvas = self.canvas if self._show_sample else self.blank_canvas
+            canvas = self._projectors["projector_r"].get_output_canvas() + self._projectors["projector_g"].get_output_canvas() + self._projectors["projector_b"].get_output_canvas()
+            canvas = canvas * self._exposure_gain / 3
+            canvas = canvas.astype(np.int32)
+            canvas = canvas.clip(0, 255)
             canvas_width, canvas_height, _ = self.canvas_shape
             canvas_ds = DOWNSAMPLE
             img_downsample = DOWNSAMPLE * objective_downsample
         else:
-            canvas = (
-                self.canvas_low_mag if self._show_sample else self.blank_canvas_low_mag
-            )
+            canvas = self._projectors["projector_r"].get_output_canvas_low_mag() + self._projectors["projector_g"].get_output_canvas_low_mag() + self._projectors["projector_b"].get_output_canvas_low_mag()
+            canvas = canvas * self._exposure_gain / 3
+            canvas = canvas.astype(np.int32)
+            canvas = canvas.clip(0, 255)
             canvas_width, canvas_height, _ = self.low_mag_canvas_shape
             canvas_ds = LOW_MAG_DOWNSAMPLE
             img_downsample = LOW_MAG_DOWNSAMPLE * objective_downsample
@@ -358,18 +169,8 @@ class SimulatedCamera(BaseCamera):
         x_indices = np.arange(top_left[0], top_left[0] + image_width)
         y_indices = np.arange(top_left[1], top_left[1] + image_height)
 
-        if self.repeating:
-            # Create index list with modulo rather than slicing to handle wrapping at the
-            # canvas edge.
-            x_indices = x_indices % canvas_width
-            y_indices = y_indices % canvas_height
-        else:
-            # Rather than use a modulo for the index list, as above when wrapping,
-            # this uses np.clip to coerce all out of bound indices to repeat the
-            # first or last pixel in the canvas. This works because no sprite touches
-            # the very edge of the canvas (to prevent partial sprites).
-            x_indices = np.clip(x_indices, 0, canvas_width - 1)
-            y_indices = np.clip(y_indices, 0, canvas_height - 1)
+        x_indices = np.clip(x_indices, 0, canvas_width - 1)
+        y_indices = np.clip(y_indices, 0, canvas_height - 1)
 
         z_indices = np.arange(self.shape[2])
 
@@ -397,20 +198,16 @@ class SimulatedCamera(BaseCamera):
         if not self.shutter_on:
             return Image.new(mode="RGB", size=(self.shape[1], self.shape[0]), color=0)
         # Otherwise, generate a frame from current position
-        pos = self._stage.instantaneous_position
-        r = self._projectors["projector_r"].generate_image((pos["y"], pos["x"], pos["z"]))
-        g = self._projectors["projector_g"].generate_image((pos["y"], pos["x"], pos["z"]))
-        b = self._projectors["projector_b"].generate_image((pos["y"], pos["x"], pos["z"]))
-        img = np.asarray(r).astype(np.float32) + np.asarray(g).astype(np.float32) + np.asarray(b).astype(np.float32)
-        img = img*2 / 3
-        img = img.clip(0, 255).astype(np.uint8)
-        return Image.fromarray(img)
+        try:
+            pos = self._stage.instantaneous_position
+            return self.generate_image((pos["y"], pos["x"], pos["z"]))
+        except Exception:
+            return Image.new(mode="RGB", size=(self.shape[1], self.shape[0]), color=0)
 
     def __enter__(self) -> Self:
         """Start the capture thread when the Thing context manager is opened."""
         super().__enter__()
-        self.generate_canvas()
-        # self.start_streaming()
+        self.start_streaming()
         return self
 
     def __exit__(
