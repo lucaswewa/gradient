@@ -1,0 +1,7 @@
+{
+    "things": {
+        "my": "gradient_server.wots:MyThing"
+    },
+    "settings_folder": "./gradient_server/settings/",
+    "log_folder": "./gradient_server/logs/"
+}

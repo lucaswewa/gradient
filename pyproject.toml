@@ -43,7 +43,7 @@ dev = [
 ]
 
 [project.scripts]
-gradient-server = "gradient_server.server:serve_from_cli"
+gradient = "gradient_server.server:serve_from_cli"
 
 
 [project.urls]
