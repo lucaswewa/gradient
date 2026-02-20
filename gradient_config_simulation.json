@@ -1,0 +1,27 @@
+{
+    "things": {
+        "my": "gradient_server.wots:MyThing",
+        "camera": "gradient_server.wots.camera:SimulatedCamera",
+        "stage": "gradient_server.wots.stage.SimulatedStage",
+        "projector_r": {
+            "class": "gradient_server.wots.projector:SimulatedProjector",
+            "kwargs": {
+                "color": "#e02702"
+            }
+        },
+        "projector_g": {
+            "class": "gradient_server.wots.projector:SimulatedProjector",
+            "kwargs": {
+                "color": "#46c904"
+            }
+        },
+        "projector_b": {
+            "class": "gradient_server.wots.projector:SimulatedProjector",
+            "kwargs": {
+                "color": "#0250e0"
+            }
+        }
+    },
+    "settings_folder": "./gradient_server/settings/",
+    "log_folder": "./gradient_server/logs/"
+}
