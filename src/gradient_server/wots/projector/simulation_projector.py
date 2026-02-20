@@ -14,7 +14,7 @@ import re
 import time
 from threading import Thread
 from types import TracebackType
-from typing import Literal, Mapping, Optional, Self, overload
+from typing import Literal, Optional, Self, overload
 
 import numpy as np
 from PIL import Image, ImageFilter
@@ -22,9 +22,8 @@ from PIL import Image, ImageFilter
 import labthings_fastapi as lt
 from labthings_fastapi.types.numpy import NDArray
 
-from ..projector import SimulatedProjector
-from ..stage import SimulatedStage
-from .base_camera import BaseCamera
+# from ..stage import SimulatedStage
+from .base_projector import BaseProjector
 
 LOGGER = logging.getLogger(__name__)
 
@@ -107,11 +106,9 @@ def colour_str_to_colour(colour_str: str) -> tuple[int, int, int]:
     return r, g, b
 
 
-class SimulatedCamera(BaseCamera):
+class SimulatedProjector(BaseProjector):
     """A Thing that simulates a camera for testing."""
 
-    _stage: SimulatedStage = lt.thing_slot()
-    _projectors: Mapping[str, SimulatedProjector] = lt.thing_slot() # ["projector_r", "projector_g", "projector_b"])
     _show_sample: bool = True
 
     _objective: int = 40  # default 40x, our standard build
@@ -130,6 +127,7 @@ class SimulatedCamera(BaseCamera):
     def __init__(
         self,
         thing_server_interface: lt.ThingServerInterface,
+        color: str = "#b937b9",
         shape: tuple[int, int, int] = (616, 820, 3),
         canvas_shape: tuple[int, int, int] = (1500, 2000, 3),
         frame_interval: float = 0.1,
@@ -144,6 +142,7 @@ class SimulatedCamera(BaseCamera):
             however the rate may be slower due to calculation time for focus.
         """
         super().__init__(thing_server_interface)
+        self._color = color
         self.shape = shape
         self.glyph_size = 105 // DOWNSAMPLE
         self.canvas_shape = _downsample_shape(canvas_shape, DOWNSAMPLE)
@@ -153,7 +152,7 @@ class SimulatedCamera(BaseCamera):
         self._capture_enabled = False
         self.generate_sprites()
         # Whether the LED is on
-        self.shutter_on = True
+        self.led_on = True
 
     repeating: bool = lt.property(default=False)
 
@@ -170,7 +169,7 @@ class SimulatedCamera(BaseCamera):
         if self._capture_enabled:
             self.generate_canvas()
 
-    _colour: str = "#b937b9"
+    # _colour: str = "#b937b9"
 
     @lt.property
     def colour(self) -> str:
@@ -180,7 +179,7 @@ class SimulatedCamera(BaseCamera):
         colours separated by semicolons (e.g. "#c5247f; #b937b9"). Additional
         spaces are allowed between colours.
         """
-        return self._colour
+        return self._color
 
     @colour.setter
     def _set_colour(self, colour_value: str) -> None:
@@ -188,7 +187,7 @@ class SimulatedCamera(BaseCamera):
             self.logger.warning(f"{colour_value} is not a valid colour string.")
             return
 
-        self._colour = colour_value
+        self._color = colour_value
         if self._capture_enabled:
             self.generate_canvas()
 
@@ -326,6 +325,9 @@ class SimulatedCamera(BaseCamera):
 
         :param pos: a 3-item tuple containing the x,y,z coordinates of the 'stage'
         """
+        if not self.led_on:
+            return Image.new(mode="RGB", size=(self.shape[1], self.shape[0]), color=0)
+
         canvas_width, canvas_height, _ = self.low_mag_canvas_shape
         # Base image size
 
@@ -387,30 +389,23 @@ class SimulatedCamera(BaseCamera):
         return Image.fromarray(np_img.astype("uint8"))
 
     @lt.action
-    def set_shutter(self, shutter_on: bool = True) -> None:
+    def set_led(self, led_on: bool = True) -> None:
         """Set the simulated LED to on or off."""
-        self.shutter_on = shutter_on
+        self.led_on = led_on
 
     def generate_frame(self) -> Image.Image:
         """Generate a frame with blobs based on the stage coordinates."""
         # Simulate LED turning off by setting all channels to 0
-        if not self.shutter_on:
+        if not self.led_on:
             return Image.new(mode="RGB", size=(self.shape[1], self.shape[0]), color=0)
         # Otherwise, generate a frame from current position
-        pos = self._stage.instantaneous_position
-        r = self._projectors["projector_r"].generate_image((pos["y"], pos["x"], pos["z"]))
-        g = self._projectors["projector_g"].generate_image((pos["y"], pos["x"], pos["z"]))
-        b = self._projectors["projector_b"].generate_image((pos["y"], pos["x"], pos["z"]))
-        img = np.asarray(r).astype(np.float32) + np.asarray(g).astype(np.float32) + np.asarray(b).astype(np.float32)
-        img = img*2 / 3
-        img = img.clip(0, 255).astype(np.uint8)
-        return Image.fromarray(img)
+        return self.generate_image((0, 0, 0))
 
     def __enter__(self) -> Self:
         """Start the capture thread when the Thing context manager is opened."""
         super().__enter__()
         self.generate_canvas()
-        # self.start_streaming()
+        self.start_streaming()
         return self
 
     def __exit__(

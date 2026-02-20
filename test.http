@@ -1,0 +1,38 @@
+### projector_r
+POST http://localhost:5000/projector_r/set_led
+
+{
+    "led_on": true
+}
+
+### projector_g
+POST http://localhost:5000/projector_g/set_led
+
+{
+    "led_on": false
+}
+
+### projector_b
+POST http://localhost:5000/projector_b/set_led
+
+{
+    "led_on": false
+}
+
+### camera
+POST http://localhost:5000/camera/start_streaming
+
+{
+  "main_resolution": [
+    820,
+    616
+  ],
+  "buffer_count": 1
+}
+
+### camera
+POST http://localhost:5000/camera/set_shutter
+
+{
+    "shutter_on": true
+}
