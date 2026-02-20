@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-
 from argparse import Namespace
 from copy import copy
 from typing import Any, Optional
@@ -16,14 +15,13 @@ import labthings_fastapi as lt
 from labthings_fastapi.server import fallback
 from labthings_fastapi.server.config_model import ThingServerConfig
 
-from ..utilities import load_patched_config
-
-from ..logging import (
+from .._logging import (
     GRADIENT_HANDLER,
     configure_logging,
     retrieve_log,
     retrieve_log_from_file,
 )
+from ..utilities import load_patched_config
 
 LOGGER = logging.getLogger(__name__)
 DEVELOPER_MODE = os.getenv("GRADIENT_SERVER_DEV_MODE", "false").lower() == "true"
