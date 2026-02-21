@@ -40,3 +40,12 @@ PUT http://localhost:5000/camera/objective
 PUT http://localhost:5000/camera/exposure_gain
 
 11
+
+
+### stage
+POST http://localhost:5000/stage/jog
+
+{
+  "stop": false,
+  "x": -100
+}

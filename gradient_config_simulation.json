@@ -2,7 +2,12 @@
     "things": {
         "my": "gradient_server.wots:MyThing",
         "camera": "gradient_server.wots.camera:SimulatedCamera",
-        "stage": "gradient_server.wots.stage.SimulatedStage",
+        "stage": {
+            "class": "gradient_server.wots.stage.SimulatedStage",
+            "kwargs": {
+                "step_time": 0.005
+            }
+        },
         "projector_r": {
             "class": "gradient_server.wots.projector:SimulatedProjector",
             "kwargs": {

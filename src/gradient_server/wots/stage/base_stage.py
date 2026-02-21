@@ -8,6 +8,9 @@ from typing import Any, Literal, Optional, overload
 
 import labthings_fastapi as lt
 
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 class RedefinedBaseMovementError(RuntimeError):
     """The subclass of BaseStage has overridden ``move_relative`` or ``move_absolute``.
@@ -55,9 +58,11 @@ class JogQueue(queue.Queue[JogCommand]):
         """Put the next command into the queue, bumping anything already there."""
         try:
             # First remove existing item if present
-            self.get_nowait()
+            cmd = self.get_nowait()
+            LOGGER.info(f"[JogQueue::put] removed command={cmd} from the queue")
         except queue.Empty:
             pass
+        LOGGER.info(f"[JogQueue::put] adding command={item} to the queue")
         super().put(item, block=block, timeout=timeout)
 
 
@@ -203,6 +208,7 @@ class BaseStage(lt.Thing):
     @lt.action
     def move_absolute(self, block_cancellation: bool = False, **kwargs: int) -> None:
         """Make an absolute move. Keyword arguments should be axis names."""
+        LOGGER.info("[BaseStage::move_absolute]")
         self._hardware_move_absolute(
             block_cancellation=block_cancellation,
             **self._apply_axis_direction(kwargs),
@@ -257,6 +263,7 @@ class BaseStage(lt.Thing):
         :param kwargs: Keyword arguments should be axis names.
         """
         if stop:
+            LOGGER.info(f"[BaseStage::jog] stop the jog action")
             self._send_jog_command(JogCommand(None))
             return
 
@@ -266,9 +273,12 @@ class BaseStage(lt.Thing):
             self.logger.warning(
                 "Requested jog movement is is empty. Sending STOP instead."
             )
+            LOGGER.info(f"[BaseStage::jog] stop the jog action")
             self._send_jog_command(JogCommand(None))
         else:
-            self._send_jog_command(JogCommand(move))
+            move_cmd = JogCommand(move)
+            LOGGER.info(f"[BaseStage::jog] start the jog action, move={move_cmd}")
+            self._send_jog_command(move_cmd)
 
     def _send_jog_command(self, command: JogCommand) -> None:
         """Send a jog command to the background jog thread.
@@ -281,24 +291,27 @@ class BaseStage(lt.Thing):
         :param command: the jog command to send.
         """
         if not self._jog_lock.acquire(timeout=0.1):
-            self.logger.warning(
-                "Could not send a jog message, this indicates a lock error."
+            LOGGER.warning(
+                "[BaseStage::_send_jog_command] Could not send a jog message, this indicates a lock error."
             )
             return
+        LOGGER.info("[BaseStage::_send_jog_command] acquired the _jog_lock")
         try:
             # Make sure the queue exists.
             # Check the background thread is running, and restart it if not.
             if self._jog_thread is None or not self._jog_thread.is_alive():
-                self.logger.debug("Starting background thread for jog commands")
+                LOGGER.info(f"[BaseStage::_send_jog_command] Starting background thread for jog commands {command}")
                 self._jog_queue = JogQueue()
                 self._jog_thread = threading.Thread(
                     target=self._jog_loop, args=(command,)
                 )
                 self._jog_thread.start()
             else:
+                LOGGER.info("[BaseStage::_send_jog_command] add the job command {command} to the _jog_queue")
                 self._jog_queue.put(command)
         finally:
             self._jog_lock.release()
+            LOGGER.info("[BaseStage::_send_jog_command] released the _jog_lock")
 
     def _jog_loop(self, first_command: JogCommand) -> None:
         """Execute jog commands in a background thread.
@@ -306,6 +319,7 @@ class BaseStage(lt.Thing):
         This function is intended to be run in a background thread. It will look at
         ``self._jog_command`` when the ``self._jog_send`` event is set.
         """
+        LOGGER.info("[BaseStage::_jog_loop] the loop started")
         # Timeout for checking queue
         timeout = 0.1
         command: Optional[JogCommand] = first_command
@@ -314,14 +328,21 @@ class BaseStage(lt.Thing):
         with self._hardware_lock:
             while command is not None:
                 if command.displacement is not None:
+                    LOGGER.info(f"[BaseStage::_jog_loop] displacement={command.displacement}")
                     self._hardware_start_move_relative(command.displacement)
                     timeout = self._estimate_move_duration(command.displacement)
+                    LOGGER.info(f"[BaseStage::_jog_loop] estimated duration={timeout}")
                 else:
+                    LOGGER.info("[BaseStage::_jog_loop] command.displacement is None")
                     self._hardware_stop()
                     # Next iteration, we will probably time out.
                     timeout = 0.1
+                    LOGGER.info(f"[BaseStage::_jog_loop] timeout={timeout}")
+                LOGGER.info("[BaseStage::_jog_loop] updating position")
                 self.update_position()
                 command = self._get_from_jog_queue(timeout)
+                LOGGER.info(f"[BaseStage::_jog_loop] get from jog queue: {command}")
+        LOGGER.info("[BaseStage::_jog_loop] the loop stopped")
 
     def _get_from_jog_queue(self, timeout: float) -> Optional[JogCommand]:
         """Get the next JogCommand from the jog queue.
@@ -330,15 +351,21 @@ class BaseStage(lt.Thing):
         :return: The jog command or None if the stage stops before a command is
             received.
         """
+        LOGGER.info("[BaseStage::_jog_loop]")
         while True:
             try:
-                return self._jog_queue.get(timeout=timeout)
+                cmd = self._jog_queue.get(timeout=timeout)
+                LOGGER.info(f"[BaseStage::_jog_loop] jog command from the queue: {cmd}")
+                return cmd
             except queue.Empty:
+                LOGGER.info("[BaseStage::_jog_loop] the queue is Empty. poll the moving...")
                 if not self._poll_moving():
                     # The stage is no longer moving, return None
+                    LOGGER.info("[BaseStage::_jog_loop] the stage is no longer moving, return None")
                     return None
             # If we reached here then the stage is still moving. Shorten timeout and
             # check again.
+            LOGGER.info(f"[BaseStage::_jog_loop] the stage is moving, check it again... with timeout 0.1")
             timeout = 0.1
 
     @lt.action
