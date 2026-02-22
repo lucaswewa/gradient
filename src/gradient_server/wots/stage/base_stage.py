@@ -44,28 +44,81 @@ class JogCommand:
             return f"<{class_name}>STOP"
         return f"<{class_name}>{self.displacement}"
 
+class BaseHardwareStage:
+    def __init__(self):
+        self._position = {"x": 0, "y": 0, "z": 0}
 
-class JogQueue(queue.Queue[JogCommand]):
-    """A class queue for JogCommands. This always returns the most recent command."""
+    @property
+    def position(self) -> Mapping[str, int]:
+        return self._position
 
-    def __init__(self) -> None:
-        """Set up a queue with a max size of 1."""
-        super().__init__(maxsize=1)
-
-    def put(
-        self, item: JogCommand, block: bool = False, timeout: Optional[float] = None
+    def move_relative(
+        self, block_cancellation: bool = False, **kwargs: int
     ) -> None:
-        """Put the next command into the queue, bumping anything already there."""
-        try:
-            # First remove existing item if present
-            cmd = self.get_nowait()
-            LOGGER.info(f"[JogQueue::put] removed command={cmd} from the queue")
-        except queue.Empty:
-            pass
-        LOGGER.info(f"[JogQueue::put] adding command={item} to the queue")
-        super().put(item, block=block, timeout=timeout)
+        """Make a relative move in the coordinate system used by the physical hardware.
 
+        Make sure to use and update ``self._hardware_position`` not ``self.position``.
+        """
+        raise NotImplementedError(
+            "StageThings must define their own _hardware_move_relative method"
+        )
 
+    def move_absolute(
+        self,
+        portal,
+        block_cancellation: bool = False,
+        **kwargs: int,
+    ) -> None:
+        """Make a absolute move in the coordinate system used by the physical hardware.
+
+        Make sure to use and update ``self._hardware_position`` not ``self.position``.
+        """
+        raise NotImplementedError(
+            "StageThings must define their own _hardware_move_absolute method"
+        )
+
+    def stop(self, portal) -> None:
+        raise NotImplementedError(
+            "StageThings must define their own _hardware_stop method"
+        )
+
+    def poll_moving(self, portal) -> bool:
+        """Determine if the stage is still moving."""
+        raise NotImplementedError(
+            "StageThings must define their own _poll_moving method"
+        )
+
+    def estimate_move_duration(self, displacement: Sequence[int]) -> float:
+        """Calculate the expected duration of a move with the given displacement."""
+        raise NotImplementedError(
+            "StageThings must define their own _estimate_move_duration method"
+        )
+    
+    def jog(self, portal, command: JogCommand) -> None:
+        """Send a jog command to the background jog thread.
+
+        This function will start the background thread if it is not running.
+        This function acquires ``_jog_lock`` and uses the ``_jog_send`` event to signal
+        the thread to read the next command. As commands interrupt each other, this
+        function should never block for a long time.
+
+        :param command: the jog command to send.
+        """
+        raise NotImplementedError(
+            "StageThings must define their own _send_jog_command method"
+        )
+
+    def set_zero_position(self, portal) -> None:
+        """Make the current position zero in all axes.
+
+        This action does not move the stage, but resets the position to zero.
+        It is intended for use after manually or automatically recentring the
+        stage.
+        """
+        raise NotImplementedError(
+            "StageThings must define their own set_zero_position method"
+        )
+        
 class BaseStage(lt.Thing):
     """A base stage class for OpenFlexure translation stages.
 
@@ -91,11 +144,8 @@ class BaseStage(lt.Thing):
             that all code in the child class uses the hardware reference frame.
         """
         super().__init__(thing_server_interface)
-        self._hardware_lock = threading.RLock()
-        self._jog_lock = threading.Lock()
-        self._jog_queue = JogQueue()
-        self._jog_thread: Optional[threading.Thread] = None
-        self._hardware_position: Mapping[str, int] = dict.fromkeys(self._axis_names, 0)
+        self._hardware_stage: BaseHardwareStage = BaseHardwareStage()
+        # self._hardware_position: Mapping[str, int] = dict.fromkeys(self._axis_names, 0)
 
         # This must be the last thing the function does in case it is caught in a try.
         if (
@@ -117,7 +167,7 @@ class BaseStage(lt.Thing):
     @lt.property
     def position(self) -> Mapping[str, int]:
         """Current position of the stage."""
-        return self._apply_axis_direction(self._hardware_position)
+        return self._apply_axis_direction(self._hardware_stage.position)
 
     moving: bool = lt.property(default=False, readonly=True)
     """Whether the stage is in motion."""
@@ -126,12 +176,6 @@ class BaseStage(lt.Thing):
         default={"x": False, "y": False, "z": False}, readonly=True
     )
     """Used to convert coordinates between the program frame and the hardware frame."""
-
-    def update_position(self) -> None:
-        """Read position from the stage and set the corresponding property."""
-        raise NotImplementedError(
-            "StageThings must define their own update_position method"
-        )
 
     @overload
     def _apply_axis_direction(self, position: list[int] | tuple[int]) -> list[int]: ...
@@ -167,10 +211,10 @@ class BaseStage(lt.Thing):
             "Position must be a sequence of positions or a mapping from axis to position."
         )
 
-    @property
+    @lt.property
     def thing_state(self) -> Mapping[str, Any]:
         """Summary metadata describing the current state of the stage."""
-        return {"position": self.position}
+        return {"position": self._hardware_stage.position}
 
     @lt.action
     def invert_axis_direction(self, axis: Literal["x", "y", "z"]) -> None:
@@ -187,71 +231,26 @@ class BaseStage(lt.Thing):
         self.axis_inverted = direction
 
     @lt.action
-    def move_relative(self, block_cancellation: bool = False, **kwargs: int) -> None:
+    def move_relative(self, portal: lt.deps.BlockingPortal, block_cancellation: bool = False, **kwargs: int) -> None:
         """Make a relative move. Keyword arguments should be axis names."""
-        self._hardware_move_relative(
+        self._hardware_stage.move_relative(
+            portal,
             block_cancellation=block_cancellation,
             **self._apply_axis_direction(kwargs),
         )
 
-    def _hardware_move_relative(
-        self, block_cancellation: bool = False, **kwargs: int
-    ) -> None:
-        """Make a relative move in the coordinate system used by the physical hardware.
-
-        Make sure to use and update ``self._hardware_position`` not ``self.position``.
-        """
-        raise NotImplementedError(
-            "StageThings must define their own _hardware_move_relative method"
-        )
-
     @lt.action
-    def move_absolute(self, block_cancellation: bool = False, **kwargs: int) -> None:
+    def move_absolute(self, portal: lt.deps.BlockingPortal, block_cancellation: bool = False, **kwargs: int) -> None:
         """Make an absolute move. Keyword arguments should be axis names."""
         LOGGER.info("[BaseStage::move_absolute]")
-        self._hardware_move_absolute(
+        self._hardware_stage.move_absolute(
+            portal,
             block_cancellation=block_cancellation,
             **self._apply_axis_direction(kwargs),
         )
 
-    def _hardware_move_absolute(
-        self,
-        block_cancellation: bool = False,
-        **kwargs: int,
-    ) -> None:
-        """Make a absolute move in the coordinate system used by the physical hardware.
-
-        Make sure to use and update ``self._hardware_position`` not ``self.position``.
-        """
-        raise NotImplementedError(
-            "StageThings must define their own _hardware_move_absolute method"
-        )
-
-    def _hardware_start_move_relative(self, displacement: Sequence[int]) -> None:
-        """Start a relative move."""
-        raise NotImplementedError(
-            "StageThings must define their own _hardware_start_move_relative method"
-        )
-
-    def _hardware_stop(self) -> None:
-        raise NotImplementedError(
-            "StageThings must define their own _hardware_stop method"
-        )
-
-    def _poll_moving(self) -> bool:
-        """Determine if the stage is still moving."""
-        raise NotImplementedError(
-            "StageThings must define their own _poll_moving method"
-        )
-
-    def _estimate_move_duration(self, displacement: Sequence[int]) -> float:
-        """Calculate the expected duration of a move with the given displacement."""
-        raise NotImplementedError(
-            "StageThings must define their own _estimate_move_duration method"
-        )
-
     @lt.action
-    def jog(self, stop: bool = False, **kwargs: int) -> None:
+    def jog(self, portal: lt.deps.BlockingPortal, stop: bool = False, **kwargs: int) -> None:
         """Make a relative move that may be interrupted by a future ``jog``.
 
         This action makes a relative move. If another ``jog`` action is called while
@@ -264,7 +263,7 @@ class BaseStage(lt.Thing):
         """
         if stop:
             LOGGER.info(f"[BaseStage::jog] stop the jog action")
-            self._send_jog_command(JogCommand(None))
+            self._hardware_stage.jog(portal, JogCommand(None))
             return
 
         hardware_moves = self._apply_axis_direction(kwargs)
@@ -274,99 +273,11 @@ class BaseStage(lt.Thing):
                 "Requested jog movement is is empty. Sending STOP instead."
             )
             LOGGER.info(f"[BaseStage::jog] stop the jog action")
-            self._send_jog_command(JogCommand(None))
+            self._hardware_stage.jog(portal, JogCommand(None))
         else:
             move_cmd = JogCommand(move)
             LOGGER.info(f"[BaseStage::jog] start the jog action, move={move_cmd}")
-            self._send_jog_command(move_cmd)
-
-    def _send_jog_command(self, command: JogCommand) -> None:
-        """Send a jog command to the background jog thread.
-
-        This function will start the background thread if it is not running.
-        This function acquires ``_jog_lock`` and uses the ``_jog_send`` event to signal
-        the thread to read the next command. As commands interrupt each other, this
-        function should never block for a long time.
-
-        :param command: the jog command to send.
-        """
-        if not self._jog_lock.acquire(timeout=0.1):
-            LOGGER.warning(
-                "[BaseStage::_send_jog_command] Could not send a jog message, this indicates a lock error."
-            )
-            return
-        LOGGER.info("[BaseStage::_send_jog_command] acquired the _jog_lock")
-        try:
-            # Make sure the queue exists.
-            # Check the background thread is running, and restart it if not.
-            if self._jog_thread is None or not self._jog_thread.is_alive():
-                LOGGER.info(f"[BaseStage::_send_jog_command] Starting background thread for jog commands {command}")
-                self._jog_queue = JogQueue()
-                self._jog_thread = threading.Thread(
-                    target=self._jog_loop, args=(command,)
-                )
-                self._jog_thread.start()
-            else:
-                LOGGER.info("[BaseStage::_send_jog_command] add the job command {command} to the _jog_queue")
-                self._jog_queue.put(command)
-        finally:
-            self._jog_lock.release()
-            LOGGER.info("[BaseStage::_send_jog_command] released the _jog_lock")
-
-    def _jog_loop(self, first_command: JogCommand) -> None:
-        """Execute jog commands in a background thread.
-
-        This function is intended to be run in a background thread. It will look at
-        ``self._jog_command`` when the ``self._jog_send`` event is set.
-        """
-        LOGGER.info("[BaseStage::_jog_loop] the loop started")
-        # Timeout for checking queue
-        timeout = 0.1
-        command: Optional[JogCommand] = first_command
-
-        # prevent others using the stage while jogging.
-        with self._hardware_lock:
-            while command is not None:
-                if command.displacement is not None:
-                    LOGGER.info(f"[BaseStage::_jog_loop] displacement={command.displacement}")
-                    self._hardware_start_move_relative(command.displacement)
-                    timeout = self._estimate_move_duration(command.displacement)
-                    LOGGER.info(f"[BaseStage::_jog_loop] estimated duration={timeout}")
-                else:
-                    LOGGER.info("[BaseStage::_jog_loop] command.displacement is None")
-                    self._hardware_stop()
-                    # Next iteration, we will probably time out.
-                    timeout = 0.1
-                    LOGGER.info(f"[BaseStage::_jog_loop] timeout={timeout}")
-                LOGGER.info("[BaseStage::_jog_loop] updating position")
-                self.update_position()
-                command = self._get_from_jog_queue(timeout)
-                LOGGER.info(f"[BaseStage::_jog_loop] get from jog queue: {command}")
-        LOGGER.info("[BaseStage::_jog_loop] the loop stopped")
-
-    def _get_from_jog_queue(self, timeout: float) -> Optional[JogCommand]:
-        """Get the next JogCommand from the jog queue.
-
-        :param timeout: The estimtated time the move will take for the queue timeout.
-        :return: The jog command or None if the stage stops before a command is
-            received.
-        """
-        LOGGER.info("[BaseStage::_jog_loop]")
-        while True:
-            try:
-                cmd = self._jog_queue.get(timeout=timeout)
-                LOGGER.info(f"[BaseStage::_jog_loop] jog command from the queue: {cmd}")
-                return cmd
-            except queue.Empty:
-                LOGGER.info("[BaseStage::_jog_loop] the queue is Empty. poll the moving...")
-                if not self._poll_moving():
-                    # The stage is no longer moving, return None
-                    LOGGER.info("[BaseStage::_jog_loop] the stage is no longer moving, return None")
-                    return None
-            # If we reached here then the stage is still moving. Shorten timeout and
-            # check again.
-            LOGGER.info(f"[BaseStage::_jog_loop] the stage is moving, check it again... with timeout 0.1")
-            timeout = 0.1
+            self._hardware_stage.jog(portal, move_cmd)
 
     @lt.action
     def set_zero_position(self) -> None:
@@ -376,9 +287,7 @@ class BaseStage(lt.Thing):
         It is intended for use after manually or automatically recentring the
         stage.
         """
-        raise NotImplementedError(
-            "StageThings must define their own set_zero_position method"
-        )
+        self._hardware_stage.set_zero_position()
 
     @lt.action
     def get_xyz_position(self) -> tuple[int, int, int]:
@@ -388,11 +297,11 @@ class BaseStage(lt.Thing):
 
         This method provides the interface expected by the camera_stage_mapping.
         """
-        position_dict = self.position
+        position_dict = self._hardware_stage.position
         return (position_dict["x"], position_dict["y"], position_dict["z"])
 
     @lt.action
-    def move_to_xyz_position(self, xyz_pos: tuple[int, int, int]) -> None:
+    def move_to_xyz_position(self, portal: lt.deps.BlockingPortal, xyz_pos: tuple[int, int, int]) -> None:
         """Move to the location specified by an (x, y, z) tuple.
 
         :param xyz_pos: The (x, y, z) position to move to.
@@ -401,4 +310,4 @@ class BaseStage(lt.Thing):
 
         This method provides the interface expected by the camera_stage_mapping.
         """
-        self.move_absolute(x=xyz_pos[0], y=xyz_pos[1], z=xyz_pos[2])
+        self.move_absolute(portal, x=xyz_pos[0], y=xyz_pos[1], z=xyz_pos[2])

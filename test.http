@@ -49,3 +49,56 @@ POST http://localhost:5000/stage/jog
   "stop": false,
   "x": -100
 }
+
+
+### stage
+POST http://localhost:5000/stage/set_zero_position
+
+{
+}
+
+### stage
+POST http://localhost:5000/stage/set_zero_position
+
+{
+}
+
+### stage
+POST http://localhost:5000/stage/set_zero_position
+
+{
+}
+
+### stage
+POST http://localhost:5000/stage/get_pos
+
+{}
+
+### stage
+POST http://localhost:5000/stage/jp
+
+{}
+
+### stage
+POST http://localhost:5000/stage/jn
+
+{}
+
+### stage
+GET http://localhost:5000/stage/position
+
+### stage
+GET http://localhost:5000/stage/speed
+
+### stage
+PUT http://localhost:5000/stage/speed
+
+0.5
+
+### stage
+GET http://localhost:5000/stage/tick_interval
+
+### stage
+PUT http://localhost:5000/stage/tick_interval
+
+0.002
