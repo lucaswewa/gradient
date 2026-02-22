@@ -159,10 +159,6 @@ class SimuatedHardwareStage(BaseHardwareStage):
             "StageThings must define their own _poll_moving method"
         )
     
-    def estimate_move_duration(self, displacement: Sequence[int]) -> float:
-        """Calculate the expected duration of a move with the given displacement."""
-        return 4.0
-    
     def jog(self, portal: BlockingPortal, command: JogCommand) -> None:
         """Send a jog command to the background jog thread.
 

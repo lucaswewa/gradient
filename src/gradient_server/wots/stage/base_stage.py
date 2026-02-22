@@ -5,6 +5,7 @@ import queue
 import threading
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal, Optional, overload
+from anyio.from_thread import BlockingPortal
 
 import labthings_fastapi as lt
 
@@ -53,7 +54,7 @@ class BaseHardwareStage:
         return self._position
 
     def move_relative(
-        self, block_cancellation: bool = False, **kwargs: int
+        self, portal: BlockingPortal, block_cancellation: bool = False, **kwargs: int
     ) -> None:
         """Make a relative move in the coordinate system used by the physical hardware.
 
@@ -65,7 +66,7 @@ class BaseHardwareStage:
 
     def move_absolute(
         self,
-        portal,
+        portal: BlockingPortal,
         block_cancellation: bool = False,
         **kwargs: int,
     ) -> None:
@@ -77,24 +78,18 @@ class BaseHardwareStage:
             "StageThings must define their own _hardware_move_absolute method"
         )
 
-    def stop(self, portal) -> None:
+    def stop(self, portal: BlockingPortal) -> None:
         raise NotImplementedError(
             "StageThings must define their own _hardware_stop method"
         )
 
-    def poll_moving(self, portal) -> bool:
+    def poll_moving(self, portal: BlockingPortal) -> bool:
         """Determine if the stage is still moving."""
         raise NotImplementedError(
             "StageThings must define their own _poll_moving method"
         )
 
-    def estimate_move_duration(self, displacement: Sequence[int]) -> float:
-        """Calculate the expected duration of a move with the given displacement."""
-        raise NotImplementedError(
-            "StageThings must define their own _estimate_move_duration method"
-        )
-    
-    def jog(self, portal, command: JogCommand) -> None:
+    def jog(self, portal: BlockingPortal, command: JogCommand) -> None:
         """Send a jog command to the background jog thread.
 
         This function will start the background thread if it is not running.
@@ -105,10 +100,10 @@ class BaseHardwareStage:
         :param command: the jog command to send.
         """
         raise NotImplementedError(
-            "StageThings must define their own _send_jog_command method"
+            "StageThings must define their own jog method"
         )
-
-    def set_zero_position(self, portal) -> None:
+   
+    def set_zero_position(self, portal: BlockingPortal) -> None:
         """Make the current position zero in all axes.
 
         This action does not move the stage, but resets the position to zero.

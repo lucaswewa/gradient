@@ -43,11 +43,12 @@ PUT http://localhost:5000/camera/exposure_gain
 
 
 ### stage
-POST http://localhost:5000/stage/jog
+POST http://localhost:5000/stage/move_absolute
 
 {
-  "stop": false,
-  "x": -100
+  "x": 0,
+  "y": 0,
+  "z": 500
 }
 
 
