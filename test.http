@@ -81,8 +81,8 @@ POST http://localhost:5000/stage/jn
 POST http://localhost:5000/stage/move_relative
 
 {
-  "x": 100,
-  "y": 200,
+  "x": 0,
+  "y": 400,
   "z": 0
 }
 
