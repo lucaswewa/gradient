@@ -10,6 +10,7 @@ from types import TracebackType
 from typing import Any, Mapping, Optional, Self
 from anyio.from_thread import BlockingPortal
 import asyncio
+import copy
 
 import labthings_fastapi as lt
 
@@ -21,32 +22,38 @@ from . import BaseStage, BaseHardwareStage, JogCommand
 
 
 class Cmd:
-    def __init__(self, cmd: str, val: float, res: float, evt: threading.Event):
+    def __init__(self, cmd: str, val: Mapping[str, float], evt: threading.Event):
         self.cmd: str = cmd
-        self.val: float = val
-        self.res: float = res
+        self.val: Mapping[str, float] = val
+        self.res: int = 0
         self.evt: threading.Event = evt
 
+    def __repr__(self) -> str:
+        """Represent the command as a string."""
+        class_name = type(self).__name__
+        return f"<{class_name}> cmd: {self.cmd}, val: {self.val}, res: {self.res}"
+    
 class SimuatedHardwareStage(BaseHardwareStage):
     def __init__(self):
         super().__init__()
-        self.queue = asyncio.Queue(maxsize=10)
-        self._my_tick_interval = 0.02
-        self._my_speed = 1
+        self._queue = asyncio.Queue(maxsize=10)
+        self._tick_interval = 0.05
+        self._speed = 1
         self._movement_enabled = False
         self._movement_ongoing = False
 
     async def task_coro(self):
         cmd = None
         target: Mapping[str, int] = {"x": 0, "y": 0, "z": 0}
-
+        step_sizes: Mapping[str, float] = {"x": 0, "y": 0, "z": 0}
+        item: Cmd = None
+        move = 100
         while True:
-            await asyncio.sleep(self._my_tick_interval)
-            # print("tick")
+            await asyncio.sleep(self._tick_interval)
             try:
-                item: Cmd = self.queue.get_nowait()
+                item = self._queue.get_nowait()
                 LOGGER.info(f"[SimulatedStage::task_coro] received cmd={item.cmd}")
-
+                target = copy.deepcopy(self._position)
                 if item.cmd == "get_pos":
                     item.res = self._position["x"]
                 elif item.cmd == "jp":
@@ -59,18 +66,25 @@ class SimuatedHardwareStage(BaseHardwareStage):
                     item.res = 0
                 elif item.cmd == "move_relative":
                     cmd = "move_relative"
-                    target = self._position
+                    displacement = {"x": 0, "y": 0, "z": 0}
                     for key in ["x", "y", "z"]:
                         if key in item.val:
+                            displacement[key] = item.val[key]
                             target[key] += item.val[key]
-                            
+                    max_displacement = max(abs(displacement["x"]), abs(displacement["y"]), abs(displacement["z"]))
+                    move =int(max_displacement/self._speed) if max_displacement > 0 else 0
+                    step_sizes = {key: self._speed * displacement[key] / max_displacement for key in ["x", "y", "z"]} if max_displacement > 0 else {"x": 0, "y": 0, "z": 0}
                     item.res = 0
                 elif item.cmd == "move_absolute":
                     cmd = "move_absolute"
-                    target = self._position
+                    displacement = {"x": 0, "y": 0, "z": 0}
                     for key in ["x", "y", "z"]:
                         if key in item.val:
+                            displacement[key] = item.val[key] - self._position[key]
                             target[key] = item.val[key]
+                    max_displacement = max(abs(displacement["x"]), abs(displacement["y"]), abs(displacement["z"]))
+                    move =int(max_displacement/self._speed) if max_displacement > 0 else 0
+                    step_sizes = {key: self._speed * displacement[key] / max_displacement for key in ["x", "y", "z"]} if max_displacement > 0 else {"x": 0, "y": 0, "z": 0}
                     item.res = 0
                 elif item.cmd == "stop":
                     cmd = "stop"
@@ -79,8 +93,6 @@ class SimuatedHardwareStage(BaseHardwareStage):
                     item.evt.set()
                     queue.task_done()
                     break
-
-                item.evt.set()
             except asyncio.QueueEmpty:
                 pass
             except Exception as e:
@@ -92,22 +104,37 @@ class SimuatedHardwareStage(BaseHardwareStage):
     
             # simple state machine controller
             if cmd == "jp":
-                self._position["x"] += self._my_speed 
+                self._position["x"] += self._speed 
                 if target - self._position["x"] < 0:
                     cmd = None
                     self._position["x"] = target
             elif cmd == "jn":
-                self._position["x"] -= self._my_speed 
+                self._position["x"] -= self._speed 
                 if target - self._position["x"] > 0:
                     cmd = None
                     self._position["x"] = target
             elif cmd == "move_relative":
-                self._position = target
-                cmd = None
+                if move == 0:
+                    item.evt.set()
+                    self._position = target
+                    cmd = None
+                elif move > 0:
+                    self._position["z"] += step_sizes["z"]
+                    self._position["y"] += step_sizes["y"]
+                    self._position["x"] += step_sizes["x"]
+                    move -= 1
             elif cmd == "move_absolute":
-                self._position = target
-                cmd = None
+                if move == 0:
+                    item.evt.set()
+                    self._position = target
+                    cmd = None
+                elif move > 0:
+                    self._position["z"] += step_sizes["z"]
+                    self._position["y"] += step_sizes["y"]
+                    self._position["x"] += step_sizes["x"]
+                    move -= 1
             elif cmd == "stop":
+                # TODO: stop the movement immediately, which means setting the position to the current position and clearing the queue
                 cmd = None
 
 
@@ -127,10 +154,9 @@ class SimuatedHardwareStage(BaseHardwareStage):
 
         Make sure to use and update ``self._hardware_position`` not ``self.position``.
         """
-        c = Cmd(cmd="move_relative", val=kwargs, evt=threading.Event(), res=None)
-        portal.call(self.queue.put, c)
+        c = Cmd(cmd="move_relative", val=kwargs, evt=threading.Event())
+        portal.call(self._queue.put, c)
         c.evt.wait()
-        print(c.res)        
     
     def move_absolute(
         self,
@@ -143,10 +169,9 @@ class SimuatedHardwareStage(BaseHardwareStage):
         Make sure to use and update ``self._hardware_position`` not ``self.position``.
         """
         # self._position = {"x": 0, "y": 0, "z": 0}
-        c = Cmd(cmd="move_absolute", val=kwargs, evt=threading.Event(), res=None)
-        portal.call(self.queue.put, c)
+        c = Cmd(cmd="move_absolute", val=kwargs, evt=threading.Event())
+        portal.call(self._queue.put, c)
         c.evt.wait()
-        print(c.res)        
 
     def stop(self) -> None:
         raise NotImplementedError(

@@ -42,14 +42,6 @@ PUT http://localhost:5000/camera/exposure_gain
 11
 
 
-### stage
-POST http://localhost:5000/stage/move_absolute
-
-{
-  "x": 0,
-  "y": 0,
-  "z": 500
-}
 
 
 ### stage
@@ -84,6 +76,24 @@ POST http://localhost:5000/stage/jp
 POST http://localhost:5000/stage/jn
 
 {}
+
+### stage
+POST http://localhost:5000/stage/move_relative
+
+{
+  "x": 100,
+  "y": 200,
+  "z": 0
+}
+
+### stage
+POST http://localhost:5000/stage/move_absolute
+
+{
+  "x": 0,
+  "y": 0,
+  "z": 0
+}
 
 ### stage
 GET http://localhost:5000/stage/position
