@@ -6,14 +6,20 @@ import logging
 import os
 from argparse import Namespace
 from copy import copy
-from typing import Any, Optional
+from functools import wraps
+from pathlib import Path
+from typing import Any, Callable, Optional
 
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware  # vue3 migration
+from uvicorn.main import Server
 
 import labthings_fastapi as lt
 from labthings_fastapi.server import fallback
 from labthings_fastapi.server.config_model import ThingServerConfig
+
+from gradient_server.wots.camera import BaseCamera
+from gradient_server.utilities import load_patched_config
 
 from .._logging import (
     GRADIENT_HANDLER,
@@ -25,10 +31,37 @@ from ..utilities import load_patched_config
 
 LOGGER = logging.getLogger(__name__)
 DEVELOPER_MODE = os.getenv("GRADIENT_SERVER_DEV_MODE", "false").lower() == "true"
+_TEMPLATE_PATH = Path(__file__).with_name("fallback.html.jinja")
+
+
+def set_shutdown_function(shutdown_function: Callable[[], None]) -> None:
+    """Ensure a function is called before the shutdown.
+
+    This monkey patches the Uvicorn Server's handle_exit. This is needed because
+    the uvicorn ``lifecycle`` events and FastAPI ``shutdown`` events only fire once
+    background tasks have completed.
+
+    Without this the system exits cleanly only if no client is receiving a
+    StreamingResponse. This patch is used to stop the async generators that
+    send streaming responses.
+
+    :param shutdown_function: A callable with no arguments or outputs. This
+        should stop any async generators that may be sending to streaming responses.
+    """
+    original_handler = Server.handle_exit
+
+    @wraps(Server.handle_exit)
+    def handle_exit(*args: Any, **kwargs: Any) -> None:
+        shutdown_function()
+        original_handler(*args, **kwargs)
+
+    # Ignore the MyPy doesn't want us monkey patching. We have to unless the
+    # FastAPI lifecycle is fixed.
+    Server.handle_exit = handle_exit  # type: ignore[method-assign]
 
 
 def customise_server(
-    server: lt.ThingServer, log_folder: str, _scans_folder: Optional[str]
+    server: lt.ThingServer, log_folder: str, scans_folder: Optional[str]
 ) -> None:
     """Customise the server with additional endpoints, etc."""
     configure_logging(log_folder)
@@ -43,7 +76,7 @@ def customise_server(
             allow_headers=["*"],
         )
 
-    # # Add an endpoint to get the logs - (directly calling the FastAPI decorator)
+    # Add an endpoint to get the logs - (directly calling the FastAPI decorator)
     server.app.get("/log/")(retrieve_log)
     server.app.get("/logfile/")(retrieve_log_from_file)
 
@@ -82,6 +115,22 @@ def serve_from_cli(argv: Optional[list[str]] = None) -> None:
             server, internal_config["log_folder"], internal_config["scans_folder"]
         )
 
+        def shutdown_call() -> None:
+            try:
+                camera_thing = server.things["camera"]
+                if not isinstance(camera_thing, BaseCamera):
+                    raise RuntimeError("Camera thing is not a BaseCamera")
+                camera_thing.kill_mjpeg_streams()
+            except BaseException as e:
+                # Catch anything and log as it is essential that this
+                # function cannot raise an unhandled exception or Uvicorn
+                # will never get a shutdown signal.
+                LOGGER.error(e, exc_info=True)
+
+        # Monkey patch uvicorn's exit handling to stop the MJPEG Streams
+        # before waiting for background tasks to complete.
+        set_shutdown_function(shutdown_call)
+
         uvicorn.run(
             server.app,
             host=args.host,
@@ -103,6 +152,7 @@ def serve_from_cli(argv: Optional[list[str]] = None) -> None:
                 log_history = None
 
             app = fallback.app
+            app.set_template_str(_TEMPLATE_PATH.read_text(encoding="utf-8"))
             app.set_context(
                 fallback.FallbackContext(
                     server=server, config=lt_config, error=e, log_history=log_history
