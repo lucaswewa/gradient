@@ -322,6 +322,15 @@ class SimulatedProjector(BaseProjector):
 
         canvas[top:bottom, left:right] += sprite_rgb.astype("int16")
 
+    @lt.property
+    def led(self) -> bool:
+        """Whether the simulated LED is on."""
+        return self.led_on
+    
+    @led.setter
+    def _set_led(self, led_on: bool) -> None:
+        self.led_on = led_on
+    
     @lt.action
     def set_led(self, led_on: bool = True) -> None:
         """Set the simulated LED to on or off."""

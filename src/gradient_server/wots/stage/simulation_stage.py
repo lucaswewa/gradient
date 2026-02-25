@@ -37,7 +37,7 @@ class SimuatedHardwareStage(BaseHardwareStage):
     def __init__(self):
         super().__init__()
         self._queue = asyncio.Queue(maxsize=10)
-        self._tick_interval = 0.05
+        self._tick_interval = 0.005
         self._speed = 1
         self._movement_enabled = False
         self._movement_ongoing = False
@@ -205,6 +205,14 @@ class SimuatedHardwareStage(BaseHardwareStage):
         """
         self._position = {"x": 0, "y": 0, "z": 0}
             
+    def get_speed(self) -> float:
+        """Get the current speed of the stage in units per second."""
+        return self._speed
+    
+    def set_speed(self, speed: float) -> None:
+        """Set the speed of the stage in units per second."""
+        self._speed = speed
+
 class SimulatedStage(BaseStage):
     """A simulated stage for testing purposes.
 
@@ -232,6 +240,15 @@ class SimulatedStage(BaseStage):
     def instantaneous_position(self) -> Mapping[str, int]:
         return self._hardware_stage.position
     
+    @lt.property
+    def speed(self) -> float:
+        """The speed of the stage in units per second."""
+        return self._hardware_stage.get_speed()
+    
+    @speed.setter
+    def _set_speed(self, speed: float) -> None:
+        self._hardware_stage.set_speed(speed)
+
     def __enter__(self) -> Self:
         """Register the stage position and start move thread running.
         

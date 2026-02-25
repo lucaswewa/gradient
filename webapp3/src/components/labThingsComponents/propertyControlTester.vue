@@ -6,22 +6,51 @@
           <b>ActionButton no modal</b>
           <br />
         </div>
-              <div id="asdf" class="uk-margin">
-                <property-control
-                  thing-name="smart_scan"
-                  property-name="stitch_automatically"
-                  label="Automatically Stitch Images Together"
-                  :read-back="true"
-                  :read-back-delay="500"
-                />
-              </div>
-              <div class="uk-margin">
-                <property-control
-                  thing-name="smart_scan"
-                  property-name="stitch_tiff"
-                  label="When Stitching, Produce a Pyramidal TIFF"
-                />
-              </div>
+          <div id="asdf" class="uk-margin">
+            <property-control
+              thing-name="projector_r"
+              property-name="led"
+              label="Projector Red LED"
+              :read-back="true"
+              :read-back-delay="500"
+            />
+          </div>
+          <div id="asdf" class="uk-margin">
+            <property-control
+              thing-name="projector_g"
+              property-name="led"
+              label="Projector Grn LED"
+              :read-back="true"
+              :read-back-delay="500"
+            />
+          </div>
+          <div id="asdf" class="uk-margin">
+            <property-control
+              thing-name="projector_b"
+              property-name="led"
+              label="Projector Blu LED"
+              :read-back="true"
+              :read-back-delay="500"
+            />
+          </div>
+          <div id="asdf" class="uk-margin">
+            <property-control
+              thing-name="stage"
+              property-name="speed"
+              label="Stage Speed"
+              :read-back="true"
+              :read-back-delay="500"
+            />
+          </div>
+          <div id="asdf" class="uk-margin">
+            <property-control
+              thing-name="stage"
+              property-name="speed"
+              label="Stage speed"
+              :read-back="true"
+              :read-back-delay="500"
+            />
+          </div>
       </div>
     </div>
   </div>

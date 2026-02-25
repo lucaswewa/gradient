@@ -2,9 +2,8 @@
   <div id="app" class="uk-height-1-1 uk-margin-remove uk-padding-remove" :class="handleTheme">
     <!-- this stops the app loading until setConnected is committed in the store, this means
      other components will not load until we have Thing Descriptions. -->
-    <propertyControlTester/>
-    <actionButtonTester/>
-
+    <loadingContent v-if="!store().ready" />
+    <!-- <appContent v-if="$store.getters.ready" /> -->
     <!-- Runtime modals -->
     <div id="modal-center" ref="keyboardManualModal" class="uk-flex-top" uk-modal>
       <div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical">
@@ -25,10 +24,16 @@
 
 <script>
 // Import components
-import propertyControlTester from "./components/labThingsComponents/propertyControlTester.vue";
-import actionButtonTester from "./components/labThingsComponents/actionButtonTester.vue";
+// import appContent from "./components/appContent.vue";
+import loadingContent from "./components/loadingContent.vue";
 import Mousetrap from "mousetrap";
 import { eventBus } from "./eventBus.js";
+
+import { useStore } from './store'
+import useLTI from '@/mixins/labThingsMixins.js'
+
+const lti = useLTI()
+const store = () => useStore()
 
 const move_keys = ["up", "down", "left", "right", "pageup", "pagedown"];
 
@@ -57,8 +62,8 @@ export default {
   name: "App",
 
   components: {
-    propertyControlTester,
-    actionButtonTester
+    // appContent,
+    loadingContent,
   },
 
   data: function () {
@@ -72,6 +77,7 @@ export default {
       lastJogTime: 0,
       jogDistance: 600,
       jogTime: 300,
+      store: () => useStore(),
     };
   },
 
@@ -85,6 +91,13 @@ export default {
     },
     handleTheme: function () {
       var isDark = false;
+      if (this.store().state.appTheme == "dark") {
+        isDark = true;
+      } else if (this.store().state.appTheme == "system") {
+        if (this.systemDark) {
+          isDark = true;
+        }
+      }
       return {
         "uk-light": isDark,
         "uk-background-secondary": isDark,
@@ -112,7 +125,18 @@ export default {
   },
 
   created: function () {
-
+    window.addEventListener("beforeunload", this.handleExit);
+    // Scrollwheel listener
+    window.addEventListener("wheel", this.wheelMonitor);
+    // Watch for origin changes
+    // this.unwatchOriginFunction = this.store().watch(
+    //   (state, getters) => {
+    //     return getters.baseUri;
+    //   },
+    //   () => {
+    //     this.checkConnection();
+    //   },
+    // );
 
     // Keyboard shortcuts
     Mousetrap.bind("?", () => {
@@ -195,32 +219,32 @@ export default {
 
   methods: {
     async checkConnection() {
-      // var baseUri = this.$store.getters.baseUri;
-      // this.$store.commit("changeWaiting", true);
-      // // TODO: more robust check - e.g. use a microscope Thing
-      // // TODO: should we purge existing consumedThings?
-      // try {
-      //   await this.$store.dispatch("wot/fetchThingDescriptions", `${baseUri}/thing_descriptions/`);
-      //   for (let requiredThing of ["camera", "system"]) {
-      //     if (!this.thingAvailable(requiredThing)) {
-      //       throw new Error(`No ${requiredThing} found, the GUI won't work without one.`);
-      //     }
-      //   }
-      //   try {
-      //     let hostname = await this.readThingProperty("system", "hostname");
-      //     this.$store.commit("changeMicroscopeHostname", hostname);
-      //     document.title = `OpenFlexure Microscope: ${hostname}`;
-      //   } catch {
-      //     this.$store.commit("changeMicroscopeHostname", null);
-      //   }
-      //   // start rendering components
-      //   this.$store.commit("setConnected");
-      //   this.$store.commit("setErrorMessage", null);
-      // } catch (error) {
-      //   this.$store.commit("setErrorMessage", error);
-      // } finally {
-      //   this.$store.commit("changeWaiting", false);
-      // }
+      var baseUri = this.store().baseUri;
+      store().changeWaiting(true);
+      // TODO: more robust check - e.g. use a microscope Thing
+      // TODO: should we purge existing consumedThings?
+      try {
+        await lti.thingDescriptions(`${baseUri}/thing_descriptions/`);
+        for (let requiredThing of ["camera", "system"]) {
+          if (!lti.thingAvailable(requiredThing)) {
+            throw new Error(`No ${requiredThing} found, the GUI won't work without one.`);
+          }
+        }
+        try {
+          let hostname = await lti.readThingProperty("system", "hostname");
+          store().changeMicroscopeHostname(hostname);
+          document.title = `OpenFlexure Microscope: ${hostname}`;
+        } catch {
+          store().changeMicroscopeHostname(null);
+        }
+        // start rendering components
+        store().setConnected()
+        store().setErrorMessage(null)
+      } catch (error) {
+        store().setErrorMessage(error)
+      } finally {
+        store().changeWaiting(false);
+      }
     },
     handleExit: function () {},
 
@@ -228,20 +252,20 @@ export default {
      *  Handle global mouse wheel events to be associated with navigation
      */
     wheelMonitor: function (event) {
-      // // Only capture scroll if the event target's parent contains the "scrollTarget" class
-      // if (
-      //   event.target.parentNode.classList.contains("scrollTarget") ||
-      //   event.target.classList.contains("scrollTarget")
-      // ) {
-      //   const z_rel = event.deltaY / 100;
-      //   // Emit a signal to move, acted on by panelControl.vue
-      //   const navigationStepSize = this.$store.state.navigationStepSize;
-      //   const z = z_rel * navigationStepSize.z;
-      //   // Don't use `jog() due to variable size of jogs here and the rate limiting in
-      //   // `jog()`. No need to invert on z, as navigationInvert.z isn't exposed.
-      //   this.invokeAction("stage", "jog", { x: 0, y: 0, z: z });
-      //   eventBus.emit("globalUpdatePositionEvent");
-      // }
+      // Only capture scroll if the event target's parent contains the "scrollTarget" class
+      if (
+        event.target.parentNode.classList.contains("scrollTarget") ||
+        event.target.classList.contains("scrollTarget")
+      ) {
+        const z_rel = event.deltaY / 100;
+        // Emit a signal to move, acted on by panelControl.vue
+        const navigationStepSize = this.store().state.navigationStepSize;
+        const z = z_rel * navigationStepSize.z;
+        // Don't use `jog() due to variable size of jogs here and the rate limiting in
+        // `jog()`. No need to invert on z, as navigationInvert.z isn't exposed.
+        lti.invokeAction("stage", "jog", { x: 0, y: 0, z: z });
+        eventBus.emit("globalUpdatePositionEvent");
+      }
     },
 
     /**
@@ -255,13 +279,13 @@ export default {
       // Manually debounce extra requests from keyboard repeat rate.
       // This is used rather than an interval in case of missing a repeat.
       const now = Date.now();
-      const navigationInvert = this.$store.state.navigationInvert;
+      const navigationInvert = this.store().state.navigationInvert;
       if (now - this.lastJogTime < this.jogTime) {
         return;
       }
       this.lastJogTime = now;
 
-      this.invokeAction("stage", "jog", {
+      lti.invokeAction("stage", "jog", {
         x: x * this.jogDistance * (navigationInvert.x ? -1 : 1),
         y: y * this.jogDistance * (navigationInvert.y ? -1 : 1),
         z: z * this.jogDistance,
@@ -277,7 +301,7 @@ export default {
      * starting a new jog after an old jog finished.
      */
     jogStop() {
-      this.invokeAction("stage", "jog", { stop: true });
+      lti.invokeAction("stage", "jog", { stop: true });
       this.lastJogTime = 0;
       setTimeout(() => {
         eventBus.emit("globalUpdatePositionEvent");
