@@ -9,9 +9,18 @@
 import UIkit from "uikit";
 import { eventBus } from "@/eventBus";
 
+import { useStore } from "@/store";
+
+const store = () => useStore()
+
 export default {
   methods: {
     modalConfirm: function (modalText) {
+      // var context = this;
+
+      // Stop GPU preview to show modal
+      eventBus.emit("globalTogglePreview", false);
+
       // force OK to be capitalised
       UIkit.modal.i18n = { ok: "OK", cancel: "Cancel" };
 
@@ -27,6 +36,10 @@ export default {
             },
           )
           .finally(function () {
+            // Re-enable the GPU preview, if it was active before the modal
+            if (store().state.autoGpuPreview) {
+              eventBus.emit("globalTogglePreview", true);
+            }
             eventBus.emit("modalClosed");
           });
       };
@@ -57,7 +70,7 @@ export default {
 
     modalError: function (error) {
       var errormsg = this.getErrorMessage(error);
-      this.$store.commit("setErrorMessage", errormsg);
+      store().setErrorMessage(errormsg);
       UIkit.notification({
         message: `${errormsg}`,
         status: "danger",
@@ -74,7 +87,7 @@ export default {
       if (typeof data === "string") return data;
       try {
         return JSON.stringify(data, null, 2);
-      } catch {
+      } catch (err) {
         return String(data);
       }
     },
@@ -88,7 +101,7 @@ export default {
         if (error.response.data.detail) {
           try {
             return error.response.data.detail[0].msg;
-          } catch {
+          } catch (err) {
             return error.response.data.detail;
           }
         }

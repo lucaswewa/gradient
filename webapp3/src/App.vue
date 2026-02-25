@@ -2,7 +2,9 @@
   <div id="app" class="uk-height-1-1 uk-margin-remove uk-padding-remove" :class="handleTheme">
     <!-- this stops the app loading until setConnected is committed in the store, this means
      other components will not load until we have Thing Descriptions. -->
+    <propertyControlTester/>
     <actionButtonTester/>
+
     <!-- Runtime modals -->
     <div id="modal-center" ref="keyboardManualModal" class="uk-flex-top" uk-modal>
       <div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical">
@@ -23,6 +25,7 @@
 
 <script>
 // Import components
+import propertyControlTester from "./components/labThingsComponents/propertyControlTester.vue";
 import actionButtonTester from "./components/labThingsComponents/actionButtonTester.vue";
 import Mousetrap from "mousetrap";
 import { eventBus } from "./eventBus.js";
@@ -54,7 +57,8 @@ export default {
   name: "App",
 
   components: {
-    actionButtonTester,
+    propertyControlTester,
+    actionButtonTester
   },
 
   data: function () {

@@ -32,8 +32,10 @@ import ActionProgressBar from "./actionProgressBar.vue";
 import ActionStatusModal from "./actionStatusModal.vue";
 import { eventBus } from "../../eventBus.js";
 import { useIntersectionObserver } from "@vueuse/core";
-import labThingsMixins from "@/mixins/labThingsMixins";
 import modalMixins from "@/mixins/modalMixins";
+import useLTI from "@/mixins/labThingsMixins";
+
+const lti = useLTI();
 
 export default {
   name: "ActionButton",
@@ -188,6 +190,10 @@ export default {
     },
   },
 
+  beforeMount() {
+    lti.thingDescriptions("http://localhost:5000/thing_descriptions")
+  },
+
   mounted() {
     useIntersectionObserver(
       this.$refs.actionButton,
@@ -242,7 +248,7 @@ export default {
      *
      */
     async checkExistingTasks() {
-      let response = await labThingsMixins.methods.findOngoingActions(this.thing, this.action);
+      let response = await lti.findOngoingActions(this.thing, this.action);
       // Exit if response is null, due to an error.
       if (response == null) return;
       // Check for a task that is ongoing.
@@ -280,7 +286,7 @@ export default {
       this.$emit("taskStarted");
       let response;
       try {
-        response = await labThingsMixins.methods.invokeAction(
+        response = await lti.invokeAction(
           this.thing,
           this.action,
           this.submitData,
@@ -306,7 +312,7 @@ export default {
       // Start the store polling TaskId for success
       this.taskRunning = true;
       this.$emit("taskRunning", taskId);
-      labThingsMixins.methods.pollUntilComplete(
+      lti.pollUntilComplete(
         taskUrl,
         this.onPollingResponse,
         this.onTaskEnd, // Method to run after task (even if error)
@@ -343,7 +349,7 @@ export default {
 
     terminateTask: function () {
       if (this.taskUrl) {
-        labThingsMixins.methods.terminateAction(this.taskUrl);
+        lti.terminateAction(this.taskUrl);
       }
     },
   },

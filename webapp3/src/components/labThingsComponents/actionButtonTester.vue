@@ -41,6 +41,8 @@
 
 <script>
 import ActionButton from "./actionButton.vue";
+import useLTI from "@/mixins/labThingsMixins";
+const lti = useLTI();
 
 export default {
   name: "ActionButtonTester",
@@ -58,7 +60,12 @@ export default {
   computed: {
   },
 
+  async beforeMount() {
+    await lti.thingDescriptions("http://localhost:5000/thing_descriptions")
+  },
+
   async mounted() {
+    lti.thingDescriptions("http://localhost:5000/thing_descriptions")
   },
 
   methods: {
