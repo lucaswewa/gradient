@@ -27,7 +27,8 @@
             }
         },
         "illumination": "gradient_server.wots.illumination:SimulatorIllumination",
-        "system": "gradient_server.wots.system:GradientSystem"
+        "system": "gradient_server.wots.system:GradientSystem",
+        "tester": "gradient_server.wots.tester:TesterThing"
     },
     "settings_folder": "./gradient_server/settings/",
     "log_folder": "./gradient_server/logs/"

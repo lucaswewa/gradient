@@ -90,6 +90,8 @@ import aboutContent from "./tabContentComponents/aboutContent.vue";
 // import settingsContent from "./tabContentComponents/settingsContent.vue";
 // import slideScanContent from "./tabContentComponents/slideScanContent.vue";
 // import viewContent from "./tabContentComponents/viewContent.vue";
+import testerContent from "./tabContentComponents/testerContent.vue";
+
 import { markRaw } from "vue";
 import { eventBus } from "../eventBus.js";
 
@@ -107,10 +109,11 @@ export default {
     tabContent,
     // calibrationWizard,
     aboutContent,
+    testerContent
   },
   data: function () {
     return {
-      currentTab: "about",
+      currentTab: "tester",
       bottomTabs: [
         // {
         //   id: "settings",
@@ -126,11 +129,17 @@ export default {
         //   component: markRaw(loggingContent),
         // },
         {
+          id: "tester",
+          title: "Tester",
+          icon: "info",
+          component: markRaw(testerContent),
+          class: "uk-margin-auto-top",
+        },
+        {
           id: "about",
           title: "About",
           icon: "info",
           component: markRaw(aboutContent),
-          class: "uk-margin-auto-top",
         },
         // {
         //   id: "power",
