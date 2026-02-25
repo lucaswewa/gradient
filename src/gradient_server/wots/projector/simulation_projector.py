@@ -38,7 +38,7 @@ LOW_MAG_DOWNSAMPLE = 8
 SPRITE_UPSAMPLE = 4
 
 # A list of 6 digit hex colour codes separated by ;. Allow a trailing ;
-# For example, OpenFlexure pink would be #C5247F;
+# For example, Gradient pink would be #C5247F;
 COLOUR_LIST_REGEX = re.compile(
     r"^\s*(#[0-9a-fA-F]{6})\s*(?:;\s*(#[0-9a-fA-F]{6})\s*)*;?\s*$"
 )

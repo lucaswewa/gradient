@@ -115,7 +115,7 @@ class BaseHardwareStage:
         )
         
 class BaseStage(lt.Thing):
-    """A base stage class for OpenFlexure translation stages.
+    """A base stage class for Gradient translation stages.
 
     This can't be used directly but should reduce boilerplate code when
     implementing new stages.

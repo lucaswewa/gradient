@@ -51,7 +51,7 @@ export default {
       if (logLength == 0) {
         return defaultMessage;
       }
-      // Cannot use .at until we update OpenFlexure Connect
+      // Cannot use .at until we update Gradient Connect
       if (this.log[logLength - 1].levelname != "ERROR") {
         return defaultMessage;
       }

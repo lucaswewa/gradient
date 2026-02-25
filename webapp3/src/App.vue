@@ -3,7 +3,7 @@
     <!-- this stops the app loading until setConnected is committed in the store, this means
      other components will not load until we have Thing Descriptions. -->
     <loadingContent v-if="!store().ready" />
-    <!-- <appContent v-if="$store.getters.ready" /> -->
+    <appContent v-if="store().ready" />
     <!-- Runtime modals -->
     <div id="modal-center" ref="keyboardManualModal" class="uk-flex-top" uk-modal>
       <div class="uk-modal-dialog uk-modal-body uk-margin-auto-vertical">
@@ -24,7 +24,7 @@
 
 <script>
 // Import components
-// import appContent from "./components/appContent.vue";
+import appContent from "./components/appContent.vue";
 import loadingContent from "./components/loadingContent.vue";
 import Mousetrap from "mousetrap";
 import { eventBus } from "./eventBus.js";
@@ -62,7 +62,7 @@ export default {
   name: "App",
 
   components: {
-    // appContent,
+    appContent,
     loadingContent,
   },
 
@@ -233,7 +233,7 @@ export default {
         try {
           let hostname = await lti.readThingProperty("system", "hostname");
           store().changeMicroscopeHostname(hostname);
-          document.title = `OpenFlexure Microscope: ${hostname}`;
+          document.title = `Gradient Microscope: ${hostname}`;
         } catch {
           store().changeMicroscopeHostname(null);
         }

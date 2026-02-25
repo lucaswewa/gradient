@@ -447,8 +447,8 @@ class BaseCamera(lt.Thing):
         return {
             "capture_time": current_time.timestamp(),
             "timezone": current_time.astimezone().utcoffset(),
-            "make": "OpenFlexure",
-            "model": "OpenFlexure Microscope",
+            "make": "Gradient",
+            "model": "Gradient Microscope",
             "things_states": metadata,
         }
 
