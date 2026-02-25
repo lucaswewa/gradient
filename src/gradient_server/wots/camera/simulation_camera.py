@@ -192,6 +192,14 @@ class SimulatedCamera(BaseCamera):
         """Set the simulated LED to on or off."""
         self.shutter_on = shutter_on
 
+    @lt.action
+    def set_led(self, led_on: bool = True) -> None:
+        """Set the simulated LED to on or off."""
+        # self.set_shutter(led_on)
+        self._projectors["projector_r"].set_led(led_on)
+        self._projectors["projector_g"].set_led(led_on)
+        # self._projectors["projector_b"].set_led(led_on)
+
     def generate_frame(self) -> Image.Image:
         """Generate a frame with blobs based on the stage coordinates."""
         # Simulate LED turning off by setting all channels to 0

@@ -25,7 +25,9 @@
             "kwargs": {
                 "color": "#0250e0"
             }
-        }
+        },
+        "illumination": "gradient_server.wots.illumination:SimulatorIllumination",
+        "system": "gradient_server.wots.system:GradientSystem"
     },
     "settings_folder": "./gradient_server/settings/",
     "log_folder": "./gradient_server/logs/"

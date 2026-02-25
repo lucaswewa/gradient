@@ -19,6 +19,9 @@
           submit-label="Flash Illumination"
           :can-terminate="false"
           :submit-data="{ dt: 0.25 }"
+          :requires-confirmation="true"
+          :modal-progress="true"
+          :stream-with-modal="true"
         />
       </div>
 
