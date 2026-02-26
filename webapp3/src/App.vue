@@ -105,7 +105,7 @@ export default {
     },
   },
 
-  mounted() {
+  async mounted() {
     // Query CSS dark theme preference
     var mql = window.matchMedia("(prefers-color-scheme: dark)");
     // Check for system dark theme when mounted
@@ -121,7 +121,7 @@ export default {
       }
     });
     // Check connection to API
-    this.checkConnection();
+    await this.checkConnection();
   },
 
   created: function () {

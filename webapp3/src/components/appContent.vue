@@ -87,7 +87,7 @@ import aboutContent from "./tabContentComponents/aboutContent.vue";
 // import loggingContent from "./tabContentComponents/loggingContent.vue";
 // import powerContent from "./tabContentComponents/powerContent.vue";
 // import scanListContent from "./tabContentComponents/scanListContent.vue";
-// import settingsContent from "./tabContentComponents/settingsContent.vue";
+import settingsContent from "./tabContentComponents/settingsContent.vue";
 // import slideScanContent from "./tabContentComponents/slideScanContent.vue";
 // import viewContent from "./tabContentComponents/viewContent.vue";
 import testerContent from "./tabContentComponents/testerContent.vue";
@@ -113,15 +113,15 @@ export default {
   },
   data: function () {
     return {
-      currentTab: "tester",
+      currentTab: "settings",
       bottomTabs: [
-        // {
-        //   id: "settings",
-        //   title: "Settings",
-        //   icon: "settings",
-        //   component: markRaw(settingsContent),
-        //   class: "uk-margin-auto-top",
-        // },
+        {
+          id: "settings",
+          title: "Settings",
+          icon: "settings",
+          component: markRaw(settingsContent),
+          class: "uk-margin-auto-top",
+        },
         // {
         //   id: "logging",
         //   title: "Logging",
@@ -133,7 +133,6 @@ export default {
           title: "Tester",
           icon: "info",
           component: markRaw(testerContent),
-          class: "uk-margin-auto-top",
         },
         {
           id: "about",
