@@ -24,6 +24,13 @@ export default {
   padding-right: 5px;
   vertical-align: middle;
   cursor: pointer;
+  caret-color: transparent;
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Chrome/Safari/Opera */
+  -khtml-user-select: none; /* Konqueror */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version */
 }
 
 .material-symbols-outlined.sync-icon {

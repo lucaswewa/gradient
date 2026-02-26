@@ -16,6 +16,7 @@
 
 <script>
 import { useIntersectionObserver } from "@vueuse/core";
+import { useStore } from "@/store.js";
 
 // Export main app
 export default {
@@ -24,13 +25,13 @@ export default {
   data: function () {
     return {
       isVisible: false,
-      baseUri: "http://localhost:5000",
+      store: () => useStore(),
     };
   },
 
   computed: {
     streamImgUri: function () {
-      return `${this.baseUri}/camera/mjpeg_stream`;
+      return `${this.store().baseUri}/camera/mjpeg_stream`;
     },
   },
 
@@ -56,8 +57,8 @@ export default {
 }
 
 .stream-display {
-  width: 80%;
-  height: 80%;
+  width: 100%;
+  height: 100%;
 }
 
 .position-relative {

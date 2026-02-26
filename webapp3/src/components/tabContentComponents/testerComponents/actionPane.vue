@@ -14,9 +14,6 @@
           submit-label="Flash"
           :can-terminate="false"
           :submit-data="{ dt: 2 }"
-          :requires-confirmation="true"
-          :modal-progress="true"
-          :stream-with-modal="true"
         />
       </div>
       <hr />

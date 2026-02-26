@@ -190,10 +190,6 @@ export default {
     },
   },
 
-  beforeMount() {
-    lti.thingDescriptions("http://localhost:5000/thing_descriptions")
-  },
-
   mounted() {
     useIntersectionObserver(
       this.$refs.actionButton,

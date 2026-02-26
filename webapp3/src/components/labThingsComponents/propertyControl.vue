@@ -86,10 +86,6 @@ export default {
     },
   },
 
-  beforeMount() {
-    lti.thingDescriptions("http://localhost:5000/thing_descriptions");
-  },
-
   mounted: function () {
     // Read the property when we're mounted - usually this won't
     // work because the URL isn't set yet. However, it's helpful if

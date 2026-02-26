@@ -15,8 +15,6 @@
 <script>
 import { useStore } from "../../../store.js";
 
-const ss = () => useStore();
-
 // Export main app
 export default {
   name: "DevTools",
@@ -25,22 +23,28 @@ export default {
 
   data: function () {
     return {
-      newOrigin: ss().state.overrideOrigin,
+      // newOrigin: () => this.store().state.overrideOrigin,
       reloadWhenOverridingOrigin: true,
-      store: ss()
+      store: () => useStore(),
     };
+  },
+
+  computed: {
+    newOrigin: function () {
+      return this.store().state.overrideOrigin;
+    },
   },
 
   methods: {
     overrideAPIHost: function (event) {
       // Save the origin override, so that if we reload the web app, you can easily
-      this.store.changeOverrideOrigin(this.newOrigin);
+      this.store().changeOverrideOrigin(this.newOrigin);
 
       // If we have elected not to reload the interface, just update the origin
       // in the store.  Otherwise, the form's default action will do the job for us.
       // TODO: preserve other query parameters when reloading
       if (!this.reloadWhenOverridingOrigin) {
-        this.store.changeOrigin(this.newOrigin);
+        this.store().changeOrigin(this.newOrigin);
         event.preventDefault();
       }
     },

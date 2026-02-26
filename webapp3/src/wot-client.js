@@ -3,9 +3,9 @@ import { computed, reactive } from "vue";
 
 
 const state = reactive({
-  thingDescriptions: {},
-  servient: null,
-  helpers: null,
+    thingDescriptions: {},
+    servient: null,
+    helpers: null,
 })
 
 function addThingDescription(thingName, thingDescription) {
@@ -34,11 +34,11 @@ async function fetchThingDescriptions(uri) {
   // Fetch thing descriptions from the given URI
   let response = await axios.get(uri);
   if (response.status != 200) throw "Could not retrieve thing descriptions";
-  for (const k in response.data) {
-    let thing_name = k.replace(/\/$/, "").replace(/^\//, "");
-    addThingDescription(thing_name, response.data[k])
+    for (const k in response.data) {
+      let thing_name = k.replace(/\/$/, "").replace(/^\//, "");
+      addThingDescription(thing_name, response.data[k])
+    }
   }
-}
 
 const thingDescriptions = computed(() => {
   return state.thingDescriptions;
@@ -60,40 +60,40 @@ function thingAffordanceAvailable(thing, affordanceType, affordance) {
   return affordance in td[affordanceType];
 }
 function thingFormUrl(thing, affordanceType, affordance, op, allowUndefined = true) {
-    // Find the URL for a particular operation
-    let td = state.thingDescriptions[thing];
-    if (!td) {
-      if (allowUndefined) return undefined;
-      throw `Could not find form for ${affordanceType} ${thing}/${affordance} with op ${op}`;
-    }
-    let affordances = td[affordanceType];
-
-    if (!affordances || !(affordance in affordances)) {
-      if (allowUndefined) return undefined;
-      throw `Could not find form for ${affordanceType} ${thing}/${affordance} with op ${op}`;
-    }
-
-    let href = findFormHref(affordances[affordance], op);
-    if (href == undefined) {
-      if (allowUndefined) return undefined;
-      throw `Could not find form for ${affordanceType} ${thing}/${affordance} with op ${op}`;
-    }
-    // If we've found an href, prepend the `base` URL if appropriate
-    if (href.startsWith("http")) return href;
-    if ("base" in td) {
-      let base = td.base;
-      if (href.startsWith("/")) href = href.slice(1);
-      if (!base.endsWith("/")) base += "/";
-      return base + href;
-    }
-    return href;
+  // Find the URL for a particular operation
+  let td = state.thingDescriptions[thing];
+  if (!td) {
+    if (allowUndefined) return undefined;
+    throw `Could not find form for ${affordanceType} ${thing}/${affordance} with op ${op}`;
   }
+  let affordances = td[affordanceType];
+
+  if (!affordances || !(affordance in affordances)) {
+    if (allowUndefined) return undefined;
+    throw `Could not find form for ${affordanceType} ${thing}/${affordance} with op ${op}`;
+  }
+
+  let href = findFormHref(affordances[affordance], op);
+  if (href === undefined) {
+    if (allowUndefined) return undefined;
+    throw `Could not find form for ${affordanceType} ${thing}/${affordance} with op ${op}`;
+  }
+  // If we've found an href, prepend the `base` URL if appropriate
+  if (href.startsWith("http")) return href;
+  if ("base" in td) {
+    let base = td.base;
+    if (href.startsWith("/")) href = href.slice(1);
+    if (!base.endsWith("/")) base += "/";
+    return base + href;
+  }
+  return href;
+}
 function thingPropertyUrl(thing, property, op, allowUndefined) {
-  // Find the URL for a particular property
+      // Find the URL for a particular property
   return thingFormUrl(thing, "properties", property, op, allowUndefined);
 }
 function thingActionUrl(thing, action, op, allowUndefined) {
-  // Find the URL for a particular action
+      // Find the URL for a particular action
   return thingFormUrl(thing, "actions", action, op, allowUndefined);
 }
 

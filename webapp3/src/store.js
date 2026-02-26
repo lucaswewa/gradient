@@ -32,6 +32,7 @@ export const useStore = defineStore('store', () => {
       y: 200,
       z: 50,
     },
+    // The axis inversion for navigation via control pane/keys presses
     navigationInvert: {
       x: false,
       y: false,
@@ -47,46 +48,46 @@ export const useStore = defineStore('store', () => {
   }
 
   function changeDisableStream(disabled) {
-    state.disableStream = disabled;
+      state.disableStream = disabled;
   }
   function changeAutoGpuPreview(enabled) {
     state.autoGpuPreview = enabled;
   }
   function changeTrackWindow(enabled) {
-    state.trackWindow = enabled;
+      state.trackWindow = enabled;
   }
   function changeAppTheme(theme) {
-    state.appTheme = theme;
+      state.appTheme = theme;
   }
   function resetState() {
-    state.waiting = false;
-    state.available = false;
-    state.error = null;
+      state.waiting = false;
+      state.available = false;
+      state.error = null;
   }
   function setConnected() {
-    state.waiting = false;
-    state.available = true;
+      state.waiting = false;
+      state.available = true;
   }
   function setErrorMessage(msg) {
-    state.error = msg;
+      state.error = msg;
   }
   function addStream(id) {
-    state.activeStreams[id] = true;
+      state.activeStreams[id] = true;
   }
   function removeStream(id) {
-    state.activeStreams[id] = false;
+      state.activeStreams[id] = false;
   }
   function changeMicroscopeHostname(value) {
-    state.microscopeHostname = value;
+      state.microscopeHostname = value;
   }
   function changeOverrideOrigin(value) {
-    state.overrideOrigin = value;
+      state.overrideOrigin = value;
   }
   function changeNavigationStepSize(value) {
-    state.navigationStepSize = value;
+      state.navigationStepSize = value;
   }
   function changeNavigationInvert(value) {
-    state.navigationInvert = value;
+      state.navigationInvert = value;
   }
 
   const baseUri = computed(() => {
@@ -121,5 +122,5 @@ export const useStore = defineStore('store', () => {
     set_available,
     baseUri,
     ready
-  }
+        }
 })
