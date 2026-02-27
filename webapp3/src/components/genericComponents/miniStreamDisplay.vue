@@ -5,7 +5,7 @@
     class="stream-display uk-width-1-1 uk-height-1-1 scrollTarget"
   >
     <img
-      v-if="isVisible"
+      v-if="isVisible && this.store().state.disableStream === false"
       ref="click-frame"
       class="uk-align-center uk-margin-remove-bottom"
       :src="streamImgUri"

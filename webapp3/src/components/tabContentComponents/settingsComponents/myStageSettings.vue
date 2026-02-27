@@ -1,30 +1,28 @@
 <template>
-  <div id="stageSettings" ref="stageSettingsContainer"
-       class="uk-width-large">
+  <div id="stageSettings" ref="stageSettingsContainer" class="uk-width-medium">
     The microscope stage is a <b>{{ stageType }}</b>
     <div>
       <div class="uk-margin">
-        <p>Your z motor is currently {{ z_inverted }} inverted.</p>
+        <p>Your z motor iz currently {{ z_inverted }} inverted.</p>
         <p>We expect that moving in +z:</p>
         <ul>
-          <li>Moves your objective up, towards the sample and illumination</li>
-          <li>Turns the exposed z gear anti-clockwise (when viewed from above)</li>
+          <li>Moves your objective up, towards the sample and illumination.</li>
+          <li>Turns the exposed z gear counter-clockwise (when viewed from above>)</li>
         </ul>
         <p>If this is not the case, click the button below to switch.</p>
-        <div class="uk-margin">
-          <div class="uk-margin">
-            <action-button
-              class="uk-width-1-2"
-              thing="stage"
-              action="invert_axis_direction"
-              :submit-data="{ axis: 'z' }"
-              submit-label="Invert z"
-              @response="readAxis()"
-            />
-          </div>
+        <div>
+          <action-button
+            class="uk-width-1-2"
+            thing="stage"
+            action="invert-axis-direction"
+            :submit-data="{axis: 'z'}"
+            submit-label="Invert z"
+            @response="readAxis()"
+          />
         </div>
       </div>
     </div>
+
 
     <p><b>Single Move Step Size</b></p>
     <p>
@@ -146,4 +144,4 @@ export default {
 };
 </script>
 
-<style lang="less"></style>
+<style lang="less" scoped></style>

@@ -1,21 +1,21 @@
 <template>
   <div>
-    <appSettings />
-    <streamSettings />
+    <myAppSettings />
+    <myStreamSettings />
   </div>
 </template>
 
 <script>
-import appSettings from "./displaySettingsComponents/appSettings.vue";
-import streamSettings from "./displaySettingsComponents/streamSettings.vue";
+import myAppSettings from "./displaySettingsComponents/myAppSettings.vue";
+import myStreamSettings from "./displaySettingsComponents/myStreamSettings.vue";
 
 // Export main app
 export default {
   name: "myDisplaySettings",
 
   components: {
-    streamSettings,
-    appSettings,
+    myStreamSettings,
+    myAppSettings,
   },
 };
 </script>

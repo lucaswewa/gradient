@@ -58,7 +58,7 @@
       </div>
     </div>
     <!-- grid column 2: miniStreamDisplay -->
-    <div id="mini-stream" class="uk-width-2-4">
+    <div id="mini-stream" class="uk-width-expand uk-padding-medium">
       <miniStreamDisplay />
     </div>
   </div>
@@ -172,7 +172,7 @@ export default {
 .settings-nav {
   overflow-y: auto;
   overflow-x: hidden;
-  width: 250px;
+  width: 200px;
   padding: 10px;
   background-color: rgba(180, 180, 180, 0.03);
   border-width: 0 1px 0 0;
@@ -186,8 +186,8 @@ export default {
 }
 
 #mini-stream {
-  min-width: 300px;
-  max-width: 600px;
+  min-width: 640px;
+  max-width: 1440px;
   text-align: center;
   margin-left: auto;
   margin-right: auto;

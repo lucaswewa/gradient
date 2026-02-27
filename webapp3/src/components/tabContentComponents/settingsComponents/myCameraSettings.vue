@@ -1,7 +1,7 @@
 <template>
   <div id="cameraSettings" ref="cameraSettingsContainer"
-       class="uk-width-large">
-    <div class="uk-width-large">
+       class="uk-width-medium">
+    <div>
       <h3>Automatic calibration</h3>
       <!-- <cameraCalibrationSettings :camera-uri="cameraUri" /> -->
       <h3>Manual camera settings</h3>
