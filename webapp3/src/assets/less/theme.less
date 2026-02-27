@@ -11,10 +11,11 @@
 //
 
 @global-color:                                  #000;
-@global-emphasis-color:                         #4d5b88;
+@theme-color:                                  #C32280;
+@global-emphasis-color:                         @theme-color;
 @global-muted-color:                            #666;
 
-@global-primary-background: #4d5b88;
+@global-primary-background: @theme-color;
 
 @inverse-primary-muted-color: lighten(@global-primary-background, 15%);
 @darkened-primary-color: darken(@global-primary-background, 15%);
