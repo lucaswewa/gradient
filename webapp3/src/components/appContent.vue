@@ -88,6 +88,7 @@ import aboutContent from "./tabContentComponents/aboutContent.vue";
 // import powerContent from "./tabContentComponents/powerContent.vue";
 // import scanListContent from "./tabContentComponents/scanListContent.vue";
 import settingsContent from "./tabContentComponents/settingsContent.vue";
+import mySettingsContent from "./tabContentComponents/mySettingsContent.vue";
 // import slideScanContent from "./tabContentComponents/slideScanContent.vue";
 // import viewContent from "./tabContentComponents/viewContent.vue";
 import testerContent from "./tabContentComponents/testerContent.vue";
@@ -109,18 +110,26 @@ export default {
     tabContent,
     // calibrationWizard,
     aboutContent,
-    testerContent
+    testerContent,
+    mySettingsContent,
+    settingsContent,
   },
   data: function () {
     return {
-      currentTab: "settings",
+      currentTab: "my-settings",
       bottomTabs: [
+        {
+          id: "my-settings",
+          title: "My Settings",
+          icon: "settings",
+          component: markRaw(mySettingsContent),
+          class: "uk-margin-auto-top",
+        },
         {
           id: "settings",
           title: "Settings",
           icon: "settings",
           component: markRaw(settingsContent),
-          class: "uk-margin-auto-top",
         },
         // {
         //   id: "logging",
