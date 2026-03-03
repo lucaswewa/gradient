@@ -6,7 +6,7 @@
       <!-- <calibrationWizard ref="calibrationWizard"></calibrationWizard> -->
       <div class="settings-nav">
         <ul class="uk-nav uk-nav-default">
-          <li class="uk-nav-header">Application Settings</li>
+          <li class="uk-nav-header">Manual Control</li>
           <li v-for="item in appTabs" :key="'setting-' + item.id + '-tab-content'">
             <tabIcon
               :id="'setting-' + item.id + '-tab-content'"
@@ -20,7 +20,7 @@
               {{ item.title }}
             </tabIcon>
           </li>
-          <li class="uk-nav-header">Microscope Settings</li>
+          <li class="uk-nav-header">Microscope Control</li>
           <button
             submit-label="Launch Calibration Wizard"
             type="button"
@@ -65,12 +65,12 @@
 </template>
 
 <script>
-import myDisplaySettings from "./settingsComponents/myDisplaySettings.vue";
-import myCameraSettings from "./settingsComponents/myCameraSettings.vue";
-import myStageSettings from "./settingsComponents/myStageSettings.vue";
-import miniStreamDisplay from "../genericComponents/miniStreamDisplay.vue";
+import myStageControlContent from "./controlComponents/myStageControlContent.vue";
+import myProjectorControlContent from "./controlComponents/myProjectorControlContent.vue";
+import myCameraControlContent from "./controlComponents/myCameraControlContent.vue";
+import myDeviceControlContent from "./controlComponents/myDeviceControlContent.vue";
+import MiniStreamDisplay from "../genericComponents/miniStreamDisplay.vue";
 
-// Import generic components
 import tabIcon from "../genericComponents/tabIcon.vue";
 import tabContent from "../genericComponents/tabContent.vue";
 import { markRaw } from "vue";
@@ -80,54 +80,55 @@ import useLTI from "@/mixins/labThingsMixins";
 
 const lti = useLTI();
 
-// Export main app
 export default {
-  name: "MySettingsContent",
+  name: "MyControlContent",
 
   components: {
     tabIcon,
     tabContent,
-    myCameraSettings,
-    myDisplaySettings,
-    myStageSettings,
-    miniStreamDisplay,
+    // paneControl,
+    MiniStreamDisplay,
+    stageControlContent: myStageControlContent,
+    projectorControlContent: myProjectorControlContent,
+    cameraControlContent: myCameraControlContent,
+    deviceControlContent: myDeviceControlContent
   },
 
-  data: function () {
+  data: function() {
     return {
-      selected: "display",
-      currentTab: "display",
+      selected: "stage",
+      currentTab: "stage",
       coreAppTabs: [
         {
-          id: "display",
-          title: "Display",
+          id: "stage",
+          title: "Stage",
           requireConnection: false,
-          component: markRaw(myDisplaySettings),
+          component: markRaw(myStageControlContent),
+          requiredThings: [],
+        },
+        {
+          id: "projector",
+          title: "Projector",
+          requireConnection: false,
+          component: markRaw(myProjectorControlContent),
+          requiredThings: [],
+        },
+        {
+          id: "camera",
+          title: "Camera",
+          requireConnection: false,
+          component: markRaw(myCameraControlContent),
           requiredThings: [],
         },
       ],
       coreCalibrationTabs: [
         {
-          id: "camera",
-          title: "Camera",
-          requireConnection: true,
-          component: markRaw(myCameraSettings),
+          id: "device",
+          title: "Device",
+          requireConnection: false,
+          component: markRaw(myDeviceControlContent),
           requiredThings: [],
         },
-        {
-          id: "stage",
-          title: "Stage",
-          requireConnection: true,
-          component: markRaw(myStageSettings),
-          requiredThings: ["stage"],
-        },
-        // {
-        //   id: "mapping",
-        //   title: "Camera to Stage Mapping",
-        //   requireConnection: true,
-        //   component: markRaw(CSMSettings),
-        //   requiredThings: ["camera_stage_mapping"],
-        // },
       ],
       store: () => useStore(),
     };
@@ -138,7 +139,6 @@ export default {
       return [...this.appTabs, ...this.calibrationTabs];
     },
     appTabs() {
-      // Filter core top tabs based on available Things.
       return this.coreAppTabs.filter((tab) => {
         if (!tab.requiredThings || tab.requiredThings.length === 0) return true;
         return tab.requiredThings.every((thing) => lti.thingAvailable(thing));
@@ -152,16 +152,17 @@ export default {
       });
     },
   },
+
   methods: {
-    setTab: function (event, tab) {
+    setTab: function(event, tab) {
       if (!(this.currentTab == tab)) {
         this.currentTab = tab;
       }
     },
-    startModals: function () {
-      // this.$refs.calibrationWizard.force_show();
-    },
-  },
+    startModals: function() {
+
+    }
+  }
 };
 </script>
 
@@ -172,7 +173,7 @@ export default {
 .settings-nav {
   overflow-y: auto;
   overflow-x: hidden;
-  width: 240px;
+  width: 180px;
   padding: 10px;
   background-color: rgba(180, 180, 180, 0.03);
   border-width: 0 1px 0 0;

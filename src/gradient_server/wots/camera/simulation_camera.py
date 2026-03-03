@@ -108,8 +108,26 @@ class SimulatedCamera(BaseCamera):
         # Whether the LED is on
         self.shutter_on = True
         self._exposure_gain = 1.5
+        self._exposure_time = 1000.0  # us
+        self._gain = 0.0  # dB
 
     _blob_density: int = 400
+
+    @lt.property
+    def exposure(self) -> float:
+        return self._exposure_time
+    
+    @exposure.setter
+    def _set_exposure(self, val: float) -> None:
+        self._exposure_time = val
+
+    @lt.property
+    def gain(self) -> float:
+        return self._gain
+    
+    @exposure.setter
+    def _set_gain(self, val: float) -> None:
+        self._gain = val
 
     @lt.property
     def exposure_gain(self) -> float:

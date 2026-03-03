@@ -83,7 +83,7 @@ import tabContent from "./genericComponents/tabContent.vue";
 // Import new content components
 import aboutContent from "./tabContentComponents/aboutContent.vue";
 // import backgroundDetectContent from "./tabContentComponents/backgroundDetectContent.vue";
-// import controlContent from "./tabContentComponents/controlContent.vue";
+import myControlContent from "./tabContentComponents/myControlContent.vue";
 // import loggingContent from "./tabContentComponents/loggingContent.vue";
 // import powerContent from "./tabContentComponents/powerContent.vue";
 // import scanListContent from "./tabContentComponents/scanListContent.vue";
@@ -109,6 +109,7 @@ export default {
     tabIcon,
     tabContent,
     // calibrationWizard,
+    myControlContent,
     aboutContent,
     testerContent,
     mySettingsContent,
@@ -116,7 +117,7 @@ export default {
   },
   data: function () {
     return {
-      currentTab: "my-settings",
+      currentTab: "control",
       bottomTabs: [
         {
           id: "my-settings",
@@ -164,13 +165,13 @@ export default {
         //   component: markRaw(viewContent),
         //   requiredThings: [],
         // },
-        // {
-        //   id: "control",
-        //   title: "Control",
-        //   icon: "gamepad",
-        //   component: markRaw(controlContent),
-        //   requiredThings: [],
-        // },
+        {
+          id: "control",
+          title: "Control",
+          icon: "gamepad",
+          component: markRaw(myControlContent),
+          requiredThings: [],
+        },
         // {
         //   id: "background-detect",
         //   title: "Background Detect",
