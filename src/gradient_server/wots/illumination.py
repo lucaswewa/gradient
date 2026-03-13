@@ -5,7 +5,7 @@ from typing import Literal
 
 import labthings_fastapi as lt
 
-from .camera import SimulatedCamera
+from .camera import SimulatedCamera, BaseCamera
 
 class Illumination(lt.Thing):
     """Base class for an illumination controller."""
@@ -34,7 +34,7 @@ class Illumination(lt.Thing):
 class SimulatorIllumination(Illumination):
     """Illumination control in the simulator."""
 
-    _cam: SimulatedCamera = lt.thing_slot()
+    _cam: BaseCamera = lt.thing_slot()
 
     @lt.action
     def set_led(self, led_on: bool = True) -> None:

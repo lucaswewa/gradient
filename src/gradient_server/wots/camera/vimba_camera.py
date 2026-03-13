@@ -30,7 +30,7 @@ from gradient_server.wots.stage import BaseStage
 from ..projector import SimulatedProjector
 from ..stage import SimulatedStage
 from .base_camera import BaseCamera
-from .vmbx import VmbX
+from ...camera.vmbx import VmbX
 
 LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +50,8 @@ class VimbaCamera(BaseCamera):
         self._vmbx_lock = threading.RLock()
         self._vmbx = VmbX(self.frame_handler)
         self._vmb_frame = None
+        self.shutter_on = True
+        self.c = 1
 
     def __enter__(self) -> Self:
         super().__enter__()
@@ -99,3 +101,34 @@ class VimbaCamera(BaseCamera):
     def stop_streaming(self) -> None:
         """Stop streaming frames from the camera."""
         self._vmbx.stop_streaming()
+
+    @lt.action
+    def arm(self) -> None:
+        """Set the simulated LED to on or off."""
+        self._vmbx.arm()
+
+    @lt.action
+    def disarm(self) -> None:
+        """Set the simulated LED to on or off."""
+        self._vmbx.disarm()
+
+    @lt.action
+    def software_trigger(self) -> None:
+        """Set the simulated LED to on or off."""
+        self._vmbx.software_trigger()
+
+    @lt.property
+    def exposure_time(self) -> float:
+        return self._vmbx.get_exposure_time_in_us()
+    
+    @exposure_time.setter
+    def _set_exposure_time(self, exp_time: float) -> None:
+        self._vmbx.set_exposure_time_in_us(exp_time)
+
+    @lt.property
+    def gain(self) -> float:
+        return self._vmbx.get_gain()
+    
+    @gain.setter
+    def _set_gain(self, val: float) -> None:
+        self._vmbx.set_gain(val)

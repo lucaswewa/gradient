@@ -3,25 +3,47 @@
     <ul>
       <propertyControl
         thing-name="camera"
-        property-name="exposure"
+        property-name="exposure_time"
         label="Exposure time (us)"
+        :read-back="true"
+        :read-back-delay="400"
       />
       <propertyControl
         thing-name="camera"
         property-name="gain"
         label="Gain (dB)"
+        :read-back="true"
+        :read-back-delay="400"
       />
       <actionButton
         thing="camera"
-        action="set_shutter"
-        :submit-data="{shutter_on: true}"
-        submit-label="Open shutter"
+        action="start_streaming"
+        :submit-data="{}"
+        submit-label="Start Streaming"
       />
       <actionButton
         thing="camera"
-        action="set_shutter"
-        :submit-data="{shutter_on: false}"
-        submit-label="Close shutter"
+        action="stop_streaming"
+        :submit-data="{}"
+        submit-label="Stop Stream"
+      />
+      <actionButton
+        thing="camera"
+        action="arm"
+        :submit-data="{}"
+        submit-label="Arm"
+      />
+      <actionButton
+        thing="camera"
+        action="software_trigger"
+        :submit-data="{}"
+        submit-label="Software Trigger"
+      />
+      <actionButton
+        thing="camera"
+        action="disarm"
+        :submit-data="{}"
+        submit-label="Disarm"
       />
       <!-- <li>Pixel Format Settings</li>
       <li>Region of Interest (ROI) Settings</li>

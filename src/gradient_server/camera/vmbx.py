@@ -7,8 +7,10 @@ See repository root for licensing information.
 """
 import numpy as np
 import vmbpy
+import time
 
 import threading
+import cv2
 
 class VmbX:    
     def __init__(self, frame_handler=None):
@@ -25,6 +27,7 @@ class VmbX:
         self._frame_handler = frame_handler
 
         self.accu_frame_counts = 0
+        self.sw_counter = 0
 
     def enter_camera(self):
         with self.lock:
@@ -36,12 +39,27 @@ class VmbX:
             if self.camera is None:
                 cameras = self.vimba.get_all_cameras()
                 self.camera = cameras[0]
+                self.camera.set_access_mode(vmbpy.AccessMode.Full)
 
             if not self.camera._context_entered:
                 self.camera.__enter__()
                 print("info: ENTERED camera context")
+                ft = self.camera.get_feature_by_name("DeviceReset")
+                ft.run()
+                self.camera._close()
+
+                import time
+                time.sleep(10)
+                cameras = self.vimba.get_all_cameras()
+                self.camera = cameras[0]
+                self.camera.set_access_mode(vmbpy.AccessMode.Full)
+                self.camera.__enter__()
             else:
                 print("error: ALREADY in camera context")
+
+            self.camera.stop_streaming()
+            self.camera.TriggerMode.set("Off")
+            self.camera.TriggerSelector.set("AcquisitionStart")
 
             self._exposure_time = self.get_exposure_time_in_us()
             self._gain = self.get_gain()
@@ -54,6 +72,10 @@ class VmbX:
             return
         
         if not self.camera.is_streaming():
+            self.camera.UserSetSelector.set('Default')
+            
+            # 2. Execute Load Command
+            self.camera.UserSetLoad.run()            
             self.camera.start_streaming(handler=self.frame_handler, buffer_count=10)
             print("info: the camera STARTED streaming")
         else:
@@ -135,3 +157,34 @@ class VmbX:
         if self._frame_handler:
             self._frame_handler(image)
         cam.queue_frame(frame)
+
+    def sw_frame_handler(self, cam: vmbpy.Camera, stream: vmbpy.Stream, frame: vmbpy.Frame):
+        print(f"7: {time.time()}")
+        image = frame.as_numpy_ndarray()
+        image = image.reshape(image.shape[0:2])
+        self.accu_frame_counts += 1
+        if self._frame_handler:
+            self._frame_handler(image)
+        cv2.imwrite(f"sw_{self.sw_counter}.png", image)
+        self.sw_counter += 1
+        time.sleep(1)
+        cam.queue_frame(frame)
+
+
+    def arm(self):
+        self.camera.TriggerMode.set("On")
+        self.camera.TriggerSelector.set("FrameStart")
+        self.camera.TriggerSource.set("Software")
+        print(f"1: {time.time()}")
+        self.camera.start_streaming(handler=self.sw_frame_handler, buffer_count=10)
+
+    def software_trigger(self):
+        print(f"3: {time.time()}")
+        self.camera.TriggerSoftware.run()
+        print(f"4: {time.time()}")
+
+    def disarm(self):
+        time.sleep(0.001)
+        print(f"5: {time.time()}")
+        self.camera.stop_streaming()
+        print(f"6: {time.time()}")
