@@ -14,9 +14,9 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 dependencies = [
-  "labthings-fastapi==0.0.14",
+  "labthings-fastapi==0.0.17",
   "camera-stage-mapping ~= 0.1.10",
-  "opencv-python ~= 4.13.0.92",
+  "opencv-python-headless ~= 4.13.0",
   "openflexure-stitching[libvips]==0.2.3",
   "pillow ~= 12.1.1",
   "anyio ~= 4.12.1",
@@ -39,7 +39,11 @@ dev = [
   "hypothesis",
   "pydoctor~=25.10",
   "codespell~=2.4",
-#   "python-gitlab~=6.2"
+  # "python-gitlab~=6.2"
+]
+
+manual = [
+  "cv2-enumerate-cameras~=1.3.3",
 ]
 
 [project.scripts]

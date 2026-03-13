@@ -31,5 +31,8 @@
         "tester": "gradient_server.wots.tester:TesterThing"
     },
     "settings_folder": "./gradient_server/settings/",
-    "log_folder": "./gradient_server/logs/"
+    "application_config": {
+        "log_folder": "./gradient_server/logs/",
+        "data_folder": "./gradient_server/data/"
+    }    
 }

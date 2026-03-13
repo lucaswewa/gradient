@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import uvicorn
-from fastapi.middleware.cors import CORSMiddleware  # vue3 migration
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from uvicorn.main import Server
 
 import labthings_fastapi as lt
@@ -28,10 +29,20 @@ from .._logging import (
     retrieve_log_from_file,
 )
 from ..utilities import load_patched_config
+from .serve_static_files import add_static_files
 
 LOGGER = logging.getLogger(__name__)
 DEVELOPER_MODE = os.getenv("GRADIENT_SERVER_DEV_MODE", "false").lower() == "true"
 _TEMPLATE_PATH = Path(__file__).with_name("fallback.html.jinja")
+
+
+class GradientApplicationData(BaseModel):
+    """Application data for the Gradient server."""
+
+    log_folder: str
+    """The directory to save the logs in."""
+    data_folder: str
+    """The directory for Things to save data in."""
 
 
 def set_shutdown_function(shutdown_function: Callable[[], None]) -> None:
@@ -60,12 +71,10 @@ def set_shutdown_function(shutdown_function: Callable[[], None]) -> None:
     Server.handle_exit = handle_exit  # type: ignore[method-assign]
 
 
-def customise_server(
-    server: lt.ThingServer, log_folder: str, scans_folder: Optional[str]
+def customize_server(
+    server: lt.ThingServer, application_config: GradientApplicationData
 ) -> None:
     """Customise the server with additional endpoints, etc."""
-    configure_logging(log_folder)
-
     if DEVELOPER_MODE:
         # Allow CORS in developer mode for easier testing with the webapp
         server.app.add_middleware(
@@ -76,23 +85,11 @@ def customise_server(
             allow_headers=["*"],
         )
 
+    add_static_files(server.app, application_config.data_folder)
+
     # Add an endpoint to get the logs - (directly calling the FastAPI decorator)
     server.app.get("/log/")(retrieve_log)
     server.app.get("/logfile/")(retrieve_log_from_file)
-
-
-def _get_scans_dir(config: dict) -> Optional[str]:
-    """Read the config and return the scans directory.
-
-    Return is None if there is no smart_scan thing loaded.
-    """
-    if "smart_scan" in config["things"]:
-        try:
-            return config["things"]["smart_scan"]["kwargs"]["scans_folder"]
-        except KeyError as e:
-            msg = "Configuration error: smart scan should have scans_folder kwarg set"
-            raise RuntimeError(msg) from e
-    return None
 
 
 def serve_from_cli(argv: Optional[list[str]] = None) -> None:
@@ -108,12 +105,15 @@ def serve_from_cli(argv: Optional[list[str]] = None) -> None:
     lt_config = None
     server = None
     try:
-        lt_config, internal_config = _full_config_from_args(args)
+        lt_config = _full_config_from_args(args)
+        # Validate our application data
+        if lt_config.application_config is None:
+            raise ValueError("No application configuration was supplied.")
+        application_config = GradientApplicationData(**lt_config.application_config)
+        configure_logging(application_config.log_folder)
 
         server = lt.ThingServer.from_config(lt_config)
-        customise_server(
-            server, internal_config["log_folder"], internal_config["scans_folder"]
-        )
+        customize_server(server, application_config)
 
         def shutdown_call() -> None:
             try:
@@ -168,25 +168,18 @@ def serve_from_cli(argv: Optional[list[str]] = None) -> None:
             raise e
 
 
-def _full_config_from_args(args: Namespace) -> tuple[ThingServerConfig, dict[str, Any]]:
+def _full_config_from_args(args: Namespace) -> ThingServerConfig:
     """Load configuration from LabThings args allowing patching.
 
-    This returns the labthings ThingServerConfig model and a dictionary of the config
-    for the Gradient device.
+    This returns the labthings ThingServerConfig model.
 
     This provides similar functionarlity to lt.cli.config_from_args except allows the
     configuration file to specify a base config, and optionally patches.
     """
-    internal_config = {"log_folder": "./gradient_server/logs", "scans_folder": None}
-    # If no config file specified let LabThings handle it.
     if not args.config:
-        return lt.cli.config_from_args(args), internal_config
+        raise RuntimeError(
+            "Gradient Server must have a configuration file specified."
+        )
 
     patched_config = load_patched_config(args.config)
-    log_folder = patched_config.pop("log_folder", None)
-    if log_folder is not None:
-        internal_config["log_folder"] = log_folder
-    scans_folder = _get_scans_dir(patched_config)
-    if scans_folder is not None:
-        internal_config["scans_folder"] = scans_folder
-    return ThingServerConfig(**patched_config), internal_config
+    return ThingServerConfig(**patched_config)
