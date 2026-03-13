@@ -10,6 +10,12 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  build: {
+    // Output directory for production builds
+    outDir: "../src/gradient_server/static",
+    // Clear output directory before build
+    emptyOutDir: true,
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

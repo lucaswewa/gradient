@@ -171,3 +171,6 @@ data/
 *.db
 
 /gradient_server/
+# web app build
+/src/gradient_server/static/
+/report.xml
