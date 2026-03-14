@@ -15,7 +15,7 @@ import time
 from threading import Thread
 import threading
 from types import TracebackType
-from typing import Literal, Mapping, Optional, Self, overload
+from typing import Literal, Mapping, Optional, overload
 
 import numpy as np
 from PIL import Image, ImageFilter
@@ -53,7 +53,7 @@ class VimbaCamera(BaseCamera):
         self.shutter_on = True
         self.c = 1
 
-    def __enter__(self) -> Self:
+    def __enter__(self):
         super().__enter__()
         self._vmbx.enter_camera()
         self.start_streaming()

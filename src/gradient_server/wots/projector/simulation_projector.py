@@ -11,7 +11,7 @@ import re
 import time
 from threading import Thread
 from types import TracebackType
-from typing import Literal, Optional, Self, overload
+from typing import Literal, Optional, overload
 
 import numpy as np
 from PIL import Image, ImageFilter
@@ -336,7 +336,7 @@ class SimulatedProjector(BaseProjector):
         """Set the simulated LED to on or off."""
         self.led_on = led_on
 
-    def __enter__(self) -> Self:
+    def __enter__(self):
         """Start the capture thread when the Thing context manager is opened."""
         super().__enter__()
         self.generate_canvas()

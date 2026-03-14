@@ -5,7 +5,7 @@ import logging
 import os
 import re
 import sys
-import tomllib
+import tomli
 from datetime import datetime
 from functools import wraps
 from importlib.metadata import version
@@ -386,7 +386,7 @@ def _get_version_from_toml(toml_path: str) -> str:
     """
     try:
         with open(toml_path, "rb") as toml_file:
-            toml_dict = tomllib.load(toml_file)
+            toml_dict = tomli.load(toml_file)
         return toml_dict["project"]["version"]
     except (IOError, ValueError, KeyError):
         LOGGER.error("Problem opening pyproject.toml")

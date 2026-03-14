@@ -9,7 +9,7 @@ See repository root for licensing information.
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Optional, Self
+from typing import Optional
 
 
 
@@ -30,7 +30,7 @@ class BaseProjector(lt.Thing):
         """
         super().__init__(thing_server_interface)
 
-    def __enter__(self) -> Self:
+    def __enter__(self):
         """Open hardware connection when the Thing context manager is opened."""
         return self
 

@@ -15,7 +15,7 @@ import tempfile
 import time
 from datetime import datetime
 from types import TracebackType
-from typing import Any, Literal, Mapping, Optional, Self, Tuple
+from typing import Any, Literal, Mapping, Optional, Tuple
 
 import numpy as np
 import piexif
@@ -164,7 +164,7 @@ class BaseCamera(lt.Thing):
         """
         super().__init__(thing_server_interface)
 
-    def __enter__(self) -> Self:
+    def __enter__(self):
         """Open hardware connection when the Thing context manager is opened."""
         return self
 

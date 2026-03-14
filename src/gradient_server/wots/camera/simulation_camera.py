@@ -14,7 +14,7 @@ import re
 import time
 from threading import Thread
 from types import TracebackType
-from typing import Literal, Mapping, Optional, Self, overload
+from typing import Literal, Mapping, Optional, overload
 
 import numpy as np
 from PIL import Image, ImageFilter
@@ -230,7 +230,7 @@ class SimulatedCamera(BaseCamera):
         except Exception:
             return Image.new(mode="RGB", size=(self.shape[1], self.shape[0]), color=0)
 
-    def __enter__(self) -> Self:
+    def __enter__(self):
         """Start the capture thread when the Thing context manager is opened."""
         super().__enter__()
         self.start_streaming()

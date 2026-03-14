@@ -7,7 +7,7 @@ import threading
 import time
 from collections.abc import Sequence
 from types import TracebackType
-from typing import Any, Mapping, Optional, Self
+from typing import Any, Mapping, Optional
 from anyio.from_thread import BlockingPortal
 import asyncio
 import copy
@@ -249,7 +249,7 @@ class SimulatedStage(BaseStage):
     def _set_speed(self, speed: float) -> None:
         self._hardware_stage.set_speed(speed)
 
-    def __enter__(self) -> Self:
+    def __enter__(self):
         """Register the stage position and start move thread running.
         
         This method runs in an anyio worker thread.

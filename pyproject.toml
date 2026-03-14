@@ -7,7 +7,7 @@ authors = [
 ]
 description = "Back-end code for the Gradient Server"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "~=3.10"
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT",
@@ -15,30 +15,31 @@ classifiers = [
 ]
 dependencies = [
   "labthings-fastapi==0.0.17",
-  "camera-stage-mapping ~= 0.1.10",
-  "opencv-python-headless ~= 4.13.0",
-  "openflexure-stitching[libvips]==0.2.3",
-  "pillow ~= 12.1.1",
-  "anyio ~= 4.12.1",
-  "numpy ~= 2.4.2",
-  "scipy ~=1.17.0",
+  # "camera-stage-mapping",
+  "opencv-python-headless",
+  # "openflexure-stitching[libvips]",
+  "pillow",
+  "anyio",
+  "numpy == 1.26.4",
+  # "scipy",
   "piexif",
-  "pydantic ~= 2.10.6",
+  "pydantic",
   "simplejpeg >= 1.9.0",
-  "semver ~= 3.0",
+  "tomli",
+  "semver",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "ruff~=0.15.1",
+  "ruff",
   "mypy[reports]",
   "pytest",
   "pytest-cov",
-  "pytest-mock==3.15",
-  "matplotlib~=3.10",
+  "pytest-mock",
+  # "matplotlib",
   "hypothesis",
-  "pydoctor~=25.10",
-  "codespell~=2.4",
+  "pydoctor",
+  "codespell",
   # "python-gitlab~=6.2"
 ]
 
