@@ -9,11 +9,12 @@ import numpy as np
 import vmbpy
 import time
 
+from typing import Callable
 import threading
 import cv2
 
 class VmbX:    
-    def __init__(self, frame_handler=None):
+    def __init__(self, device_id: str = None, frame_handler: Callable = None):
         super().__init__()
         self.vimba: vmbpy.VmbSystem = vmbpy.VmbSystem.get_instance()
         self.camera: vmbpy.Camera = None
@@ -24,6 +25,7 @@ class VmbX:
         self._gain = 0.0
         self._pixel_format = None
 
+        self._device_id = device_id
         self._frame_handler = frame_handler
 
         self.accu_frame_counts = 0
@@ -37,8 +39,11 @@ class VmbX:
             else:
                 print("error: ALREADY in vimbasystem context")
             if self.camera is None:
-                cameras = self.vimba.get_all_cameras()
-                self.camera = cameras[0]
+                if self._device_id is not None:
+                    self.camera = self.vimba.get_camera_by_id(self._device_id)
+                else:
+                    cameras = self.vimba.get_all_cameras()
+                    self.camera = cameras[0]
                 self.camera.set_access_mode(vmbpy.AccessMode.Full)
 
             if not self.camera._context_entered:
@@ -58,8 +63,6 @@ class VmbX:
                 print("error: ALREADY in camera context")
 
             self.camera.stop_streaming()
-            self.camera.TriggerMode.set("Off")
-            self.camera.TriggerSelector.set("AcquisitionStart")
 
             self._exposure_time = self.get_exposure_time_in_us()
             self._gain = self.get_gain()
@@ -172,11 +175,13 @@ class VmbX:
 
 
     def arm(self):
-        self.camera.TriggerMode.set("On")
+        self.camera.AcquisitionMode.set("Continuous")
         self.camera.TriggerSelector.set("FrameStart")
         self.camera.TriggerSource.set("Software")
+        self.camera.TriggerMode.set("On")
         print(f"1: {time.time()}")
         self.camera.start_streaming(handler=self.sw_frame_handler, buffer_count=10)
+        print(f"1.1: started streaming")
 
     def software_trigger(self):
         print(f"3: {time.time()}")
@@ -187,4 +192,6 @@ class VmbX:
         time.sleep(0.001)
         print(f"5: {time.time()}")
         self.camera.stop_streaming()
+        self.camera.TriggerMode.set("Off")
+        self.camera.TriggerSelector.set("AcquisitionStart")
         print(f"6: {time.time()}")

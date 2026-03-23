@@ -43,12 +43,13 @@ class VimbaCamera(BaseCamera):
         self,
         thing_server_interface: lt.ThingServerInterface,
         frame_interval: float = 0.1,
+        device_id: str = None,
         **kwargs) -> None:
         super().__init__(thing_server_interface)
         self._capture_enabled = False
         self.frame_interval = frame_interval
         self._vmbx_lock = threading.RLock()
-        self._vmbx = VmbX(self.frame_handler)
+        self._vmbx = VmbX(device_id=device_id, frame_handler=self.frame_handler)
         self._vmb_frame = None
         self.shutter_on = True
         self.c = 1
