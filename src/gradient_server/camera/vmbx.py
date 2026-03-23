@@ -168,7 +168,6 @@ class VmbX:
         self.accu_frame_counts += 1
         if self._frame_handler:
             self._frame_handler(image)
-        cv2.imwrite(f"sw_{self.sw_counter}.png", image)
         self.sw_counter += 1
         time.sleep(1)
         cam.queue_frame(frame)

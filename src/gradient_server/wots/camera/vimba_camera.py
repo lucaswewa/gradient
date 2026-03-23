@@ -103,6 +103,14 @@ class VimbaCamera(BaseCamera):
         """Stop streaming frames from the camera."""
         self._vmbx.stop_streaming()
 
+    @lt.property
+    def is_streaming(self) -> bool:
+        return self._vmbx.is_streaming()
+    
+    @is_streaming.setter
+    def _set_is_streaming(self, val: bool) -> None:
+        pass
+
     @lt.action
     def arm(self) -> None:
         """Set the simulated LED to on or off."""
