@@ -6,9 +6,11 @@ import time
 # import cv2
 from PIL import Image
 import threading
+from typing import Callable, Any
 
+from . import Camera
 
-class Cam:
+class SpinnakerCamera(Camera):
     def __init__(self):
         self.counter = 0
 
@@ -24,30 +26,30 @@ class Cam:
         self.cams.Clear()
         self.system.ReleaseInstance()
 
-    def set_exposure_time(self, exp_time: float):
+    def set_exposure_time(self, exposure_time_in_us: float) -> None:
         self.cam.ExposureAuto.SetValue(PySpin.ExposureAuto_Off)
-        self.cam.ExposureTime.SetValue(exp_time)
+        self.cam.ExposureTime.SetValue(exposure_time_in_us)
 
-    def get_exposure_time(self):
+    def get_exposure_time(self) -> None:
         return self.cam.ExposureTime.GetValue()
     
-    def set_gain(self, gain: float):
+    def set_gain(self, gain_in_db: float) -> None:
         self.cam.GainAuto.SetValue(PySpin.GainAuto_Off)
-        self.cam.Gain.SetValue(gain)
+        self.cam.Gain.SetValue(gain_in_db)
 
-    def get_gain(self):
+    def get_gain(self) -> float:
         return self.cam.Gain.GetValue()
 
-    def start_streaming(self, handler):
+    def start_streaming(self, handler: Callable[[Any], None]) -> None:
         self._t_streaming = True
         self._t = threading.Thread(target=self._streaming_t, args=[handler])
         self._t.start()
 
-    def stop_streaming(self):
+    def stop_streaming(self) -> None:
         self._t_streaming = False
         self._t.join()
 
-    def _streaming_t(self, handler):
+    def _streaming_t(self, handler: Callable[[Any], None]):
         self.cam.TriggerMode.SetValue(PySpin.TriggerMode_Off)
 
         nodemap_tldevice = self.cam.GetTLDeviceNodeMap()
@@ -102,6 +104,9 @@ class Cam:
 
         self.cam.EndAcquisition()   
 
+    def is_streaming(self) -> bool:
+        return self._t_streaming
+    
     def acquire(self, cb, count):
         self.cam.TriggerMode.SetValue(PySpin.TriggerMode_Off)
 
@@ -163,7 +168,7 @@ class Cam:
 
         self.cam.EndAcquisition()    
 
-    def arm(self):
+    def arm(self) -> None:
         # Configure trigger
         self.cam.TriggerMode.SetValue(PySpin.TriggerMode_Off)
         self.cam.TriggerSelector.SetValue(PySpin.TriggerSelector_FrameStart)
@@ -174,21 +179,27 @@ class Cam:
         self.cam.AcquisitionMode.SetValue(PySpin.AcquisitionMode_Continuous)
         self.cam.BeginAcquisition()
 
-    def disarm(self):
+    def disarm(self) -> None:
         self.cam.EndAcquisition()
 
         # Reset trigger
         self.cam.TriggerMode.SetValue(PySpin.TriggerMode_Off)
 
-    def software_trigger(self):
-        self.cam.TriggerSoftware.Execute()
+    def trigger_and_capture(self, count: int):
+        result = []
+        for i in range(count):
+            self.cam.TriggerSoftware.Execute()
 
-        image_result = self.cam.GetNextImage(1000)
-        if image_result.IsIncomplete():
-            print("Bad image")
-        else:
-            width = image_result.GetWidth()
-            height = image_result.GetHeight()
-            image_result.Save(f"a_{self.counter:02d}.png")
-            self.counter += 1
-        image_result.Release()
+            image_result = self.cam.GetNextImage(1000)
+            if image_result.IsIncomplete():
+                print("Bad image")
+            else:
+                width = image_result.GetWidth()
+                height = image_result.GetHeight()
+                self.counter += 1
+                image_data = image_result.GetData()
+                image_data = image_data.reshape((height, width))
+            image_result.Release()
+            result.append(image_data.copy())
+
+        return result

@@ -6,42 +6,54 @@
         property-name="exposure_time"
         label="Exposure time (us)"
         :read-back="true"
-        :read-back-delay="400"
+        :read-back-delay="200"
       />
       <propertyControl
         thing-name="camera"
         property-name="gain"
         label="Gain (dB)"
         :read-back="true"
-        :read-back-delay="400"
+        :read-back-delay="200"
+      />
+      <propertyControl
+        thing-name="camera"
+        property-name="is_streaming"
+        label="Streaming"
+        :read-back="true"
+        :read-back-delay="200"
       />
       <actionButton
         thing="camera"
         action="start_streaming"
+        poll-interval="100"
         :submit-data="{}"
         submit-label="Start Streaming"
       />
       <actionButton
         thing="camera"
         action="stop_streaming"
+        poll-interval="100"
         :submit-data="{}"
         submit-label="Stop Stream"
       />
       <actionButton
         thing="camera"
         action="arm"
+        poll-interval="100"
         :submit-data="{}"
         submit-label="Arm"
       />
       <actionButton
         thing="camera"
         action="software_trigger"
+        poll-interval="100"
         :submit-data="{}"
         submit-label="Software Trigger"
       />
       <actionButton
         thing="camera"
         action="disarm"
+        poll-interval="100"
         :submit-data="{}"
         submit-label="Disarm"
       />

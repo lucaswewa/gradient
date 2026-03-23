@@ -62,7 +62,7 @@ export default {
     pollInterval: {
       type: Number,
       required: false,
-      default: 1,
+      default: 200,
     },
     submitLabel: {
       type: String,
@@ -312,7 +312,7 @@ export default {
         taskUrl,
         this.onPollingResponse,
         this.onTaskEnd, // Method to run after task (even if error)
-        500, // Interval
+        this.pollInterval, // Interval
       );
     },
 

@@ -188,7 +188,7 @@ export default {
 
 #mini-stream {
   min-width: 640px;
-  max-width: 1440px;
+  max-width: 1280px;
   text-align: center;
   margin-left: auto;
   margin-right: auto;

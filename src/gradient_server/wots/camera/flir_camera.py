@@ -23,7 +23,7 @@ from gradient_server.wots.stage import BaseStage
 from ..projector import SimulatedProjector
 from ..stage import SimulatedStage
 from .base_camera import BaseCamera
-from ...camera.spinnaker import Cam
+from ...camera.spinnaker import SpinnakerCamera
 
 import labthings_fastapi as lt
 from typing import Literal, Mapping, Optional, overload
@@ -31,6 +31,7 @@ from types import TracebackType
 from PIL import Image
 import io
 import threading
+from ...camera import Camera
 
 LOGGER = logging.getLogger(__name__)
 
@@ -41,14 +42,14 @@ def _frame2bytes(frame: Image.Image) -> bytes:
         frame.save(buf, format="JPEG", quality=85)
         return buf.getvalue()
     
-class SpinnakerCamera(BaseCamera):
+class FlirCamera(BaseCamera):
     mjpeg_stream = lt.outputs.MJPEGStreamDescriptor()
     _stage: BaseStage = lt.thing_slot()
 
     def __init__(self, thing_server_interface):
         super().__init__(thing_server_interface)
 
-        self.cam = Cam()
+        self.cam: Camera = SpinnakerCamera()
 
     def __enter__(self):
         super().__enter__()
@@ -84,8 +85,16 @@ class SpinnakerCamera(BaseCamera):
 
     @lt.action
     def software_trigger(self):
-        self.cam.software_trigger()
+        self.cam.trigger_and_capture()
 
+    @lt.property
+    def is_streaming(self) -> bool:
+        return self.cam.is_streaming()
+    
+    @is_streaming.setter
+    def _set_is_streaming(self, val: bool) -> None:
+        pass
+    
     @lt.property
     def exposure_time(self) -> float:
         return self.cam.get_exposure_time()
@@ -115,4 +124,4 @@ class SpinnakerCamera(BaseCamera):
     @lt.action
     def software_trigger(self) -> None:
         """Set the simulated LED to on or off."""
-        self.cam.software_trigger()        
+        image_data = self.cam.trigger_and_capture()

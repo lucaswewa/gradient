@@ -23,7 +23,7 @@ from PIL import Image
 
 import labthings_fastapi as lt
 from labthings_fastapi.types.numpy import NDArray
-
+from ...camera import Camera
 
 class JPEGBlob(lt.blob.Blob):
     """A class representing a JPEG image as a LabThings FastAPI Blob."""
