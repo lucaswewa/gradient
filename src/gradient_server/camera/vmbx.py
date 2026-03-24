@@ -55,8 +55,11 @@ class VmbX:
 
                 import time
                 time.sleep(10)
-                cameras = self.vimba.get_all_cameras()
-                self.camera = cameras[0]
+                if self._device_id is not None:
+                    self.camera = self.vimba.get_camera_by_id(self._device_id)
+                else:
+                    cameras = self.vimba.get_all_cameras()
+                    self.camera = cameras[0]
                 self.camera.set_access_mode(vmbpy.AccessMode.Full)
                 self.camera.__enter__()
             else:

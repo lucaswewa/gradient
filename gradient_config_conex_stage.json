@@ -1,0 +1,43 @@
+{
+    "things": {
+        "my": "gradient_server.wots:MyThing",
+        "camera": {
+            "class": "gradient_server.wots.camera:VimbaCamera",
+            "kwargs": {
+                "device_id": "DEV_1AB22C00CBC8"
+            }
+        },
+        "stage": {
+            "class": "gradient_server.wots.stage.ConexStage",
+            "kwargs": {
+                "port": "COM10"
+            }
+        },
+        "projector_r": {
+            "class": "gradient_server.wots.projector:SimulatedProjector",
+            "kwargs": {
+                "color": "#e02702"
+            }
+        },
+        "projector_g": {
+            "class": "gradient_server.wots.projector:SimulatedProjector",
+            "kwargs": {
+                "color": "#46c904"
+            }
+        },
+        "projector_b": {
+            "class": "gradient_server.wots.projector:SimulatedProjector",
+            "kwargs": {
+                "color": "#0250e0"
+            }
+        },
+        "illumination": "gradient_server.wots.illumination:SimulatorIllumination",
+        "system": "gradient_server.wots.system:GradientSystem",
+        "tester": "gradient_server.wots.tester:TesterThing"
+    },
+    "settings_folder": "./gradient_server/settings/",
+    "application_config": {
+        "log_folder": "./gradient_server/logs/",
+        "data_folder": "./gradient_server/data/"
+    }    
+}

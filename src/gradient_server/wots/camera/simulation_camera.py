@@ -25,6 +25,7 @@ from labthings_fastapi.types.numpy import NDArray
 from ..projector import SimulatedProjector
 from ..stage import SimulatedStage
 from .base_camera import BaseCamera
+from ..stage import BaseStage
 
 LOGGER = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ def _downsample_shape(
 class SimulatedCamera(BaseCamera):
     """A Thing that simulates a camera for testing."""
 
-    _stage: SimulatedStage = lt.thing_slot()
+    _stage: BaseStage = lt.thing_slot()
     _projectors: Mapping[str, SimulatedProjector] = lt.thing_slot() # ["projector_r", "projector_g", "projector_b"])
     _show_sample: bool = True
 
