@@ -113,3 +113,28 @@ GET http://localhost:5000/stage/tick_interval
 PUT http://localhost:5000/stage/tick_interval
 
 0.002
+
+
+### My
+POST http://localhost:5000/my/start_ws
+
+### My
+POST http://localhost:5000/my/end_ws
+
+### My conn
+POST http://localhost:5000/my/conn
+Accept: application/json
+Content-Type: application/json
+
+{
+  "t": 0
+}
+
+### My info
+POST http://localhost:5000/my/info
+Accept: application/json
+Content-Type: application/json
+
+{
+  "t": 0
+}

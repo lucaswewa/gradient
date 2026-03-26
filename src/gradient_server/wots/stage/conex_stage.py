@@ -14,7 +14,7 @@ import labthings_fastapi as lt
 
 import logging
 
-from ...stage.conex_stage import Conex
+from ...stage.conex import Conex
 
 LOGGER = logging.getLogger(__name__)
 
