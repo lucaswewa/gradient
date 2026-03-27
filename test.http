@@ -128,6 +128,14 @@ Content-Type: application/json
 
 {}
 
+### My conn
+POST http://localhost:5000/my/begin_session
+Accept: application/json
+Content-Type: application/json
+
+{}
+
+
 ### My info
 POST http://localhost:5000/my/info
 Accept: application/json
@@ -164,8 +172,21 @@ Accept: application/json
 Content-Type: application/json
 
 {
-  "z_pos_start": 80,
+  "z_pos_start": 30,
   "z_pos_end": 120,
-  "n": 2
+  "n": 8
 }
 
+### Get temp1
+GET http://localhost:5000/my/temp1
+
+### Get temp2
+GET http://localhost:5000/my/temp2
+
+### Get temp1
+GET http://localhost:5000/my/temp1_history
+Accept: application/json
+
+### Get temp2
+GET http://localhost:5000/my/temp2_history
+Accept: application/json
