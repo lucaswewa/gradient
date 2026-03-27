@@ -287,15 +287,18 @@ class SimulatedCamera(BaseCamera):
     def _capture_frames(self) -> None:
         last_frame_t = time.time()
         while self._capture_enabled:
-            wait_time = self.frame_interval - (time.time() - last_frame_t)
-            if wait_time > 0:
-                time.sleep(wait_time)
-            last_frame_t = time.time()
+            try:
+                wait_time = self.frame_interval - (time.time() - last_frame_t)
+                if wait_time > 0:
+                    time.sleep(wait_time)
+                last_frame_t = time.time()
 
-            frame = self.generate_frame()
-            self.mjpeg_stream.add_frame(_frame2bytes(frame))
-            ds_frame = frame.resize((320, 240), resample=Image.Resampling.NEAREST)
-            self.lores_mjpeg_stream.add_frame(_frame2bytes(ds_frame))
+                frame = self.generate_frame()
+                self.mjpeg_stream.add_frame(_frame2bytes(frame))
+                ds_frame = frame.resize((320, 240), resample=Image.Resampling.NEAREST)
+                self.lores_mjpeg_stream.add_frame(_frame2bytes(ds_frame))
+            except Exception as e:
+                print(e)
 
     @lt.action
     def discard_frames(self) -> None:
