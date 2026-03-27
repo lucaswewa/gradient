@@ -100,6 +100,12 @@ class MyThing(lt.Thing):
                 # Receive a message from the server
                 message = await self.ws.recv()
                 obj = json.loads(message)
+                if "method" in obj.keys():
+                    print(obj["method"])
+                    if obj["method"] == "notify_status_update":
+                        print("yeah")
+                        print(obj["params"][0]["motion_report"]["live_position"])
+                        print(obj["params"][1])
                 await self.tx.send(obj)
             except websockets.exceptions.ConnectionClosed as e:
                 print(f"Connection closed: {e}")
@@ -168,4 +174,14 @@ class MyThing(lt.Thing):
         task, result=portal.start_task(self.send_cmd, self.ws, self.rx, m84)
         return task._result
 
+    @lt.action
+    def z_pos_n(self, z_pos_start: int, z_pos_end: int, n: int, portal: lt.deps.BlockingPortal) -> Any:
+        for i in range(n):
+            cmd1 = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":f"_CLIENT_LINEAR_MOVE Z={z_pos_start} F=1500 ABSOLUTE=1"},"id":34}
+            task, result=portal.start_task(self.send_cmd, self.ws, self.rx, cmd1)
+            time.sleep(0.25)
+            cmd2 = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":f"_CLIENT_LINEAR_MOVE Z={z_pos_end} F=1500 ABSOLUTE=1"},"id":34}
+            task, result=portal.start_task(self.send_cmd, self.ws, self.rx, cmd2)
+            time.sleep(0.25)
+            return task._result
 
