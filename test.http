@@ -157,6 +157,16 @@ Content-Type: application/json
 
 {}
 
+### XY pos
+POST http://localhost:5000/my/xy_pos
+Accept: application/json
+Content-Type: application/json
+
+{
+  "x_pos": 120,
+  "y_pos": 120
+}
+
 ### Z pos
 POST http://localhost:5000/my/z_pos
 Accept: application/json
@@ -174,7 +184,7 @@ Content-Type: application/json
 {
   "z_pos_start": 30,
   "z_pos_end": 120,
-  "n": 8
+  "n": 2
 }
 
 ### Get temp1

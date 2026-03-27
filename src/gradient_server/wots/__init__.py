@@ -246,3 +246,12 @@ class MyThing(lt.Thing):
 
         return task._result
 
+    @lt.action
+    def xy_pos(self, portal: lt.deps.BlockingPortal, x_pos: int = None, y_pos: int = None) -> Any:
+        x = f"X={x_pos}" if x_pos is not None else ""
+        y = f"Y={y_pos}" if y_pos is not None else ""
+        xy = x + " " + y
+        xy = xy.strip()
+        cmd = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":f"_CLIENT_LINEAR_MOVE {xy} F=6000 ABSOLUTE=1"},"id":38}
+        task, result = portal.start_task(self.send_cmd, self.ws, self.rx, cmd)
+        return task._result
