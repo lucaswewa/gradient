@@ -126,8 +126,7 @@ POST http://localhost:5000/my/conn
 Accept: application/json
 Content-Type: application/json
 
-{
-}
+{}
 
 ### My info
 POST http://localhost:5000/my/info
@@ -143,28 +142,30 @@ Content-Type: application/json
 
 {}
 
-### My M84
+### M84
 POST http://localhost:5000/my/m84
 Accept: application/json
 Content-Type: application/json
 
 {}
 
-### My z_pos
+### Z pos
 POST http://localhost:5000/my/z_pos
 Accept: application/json
 Content-Type: application/json
 
 {
-  "z_pos": 100
+  "z_pos": 80
 }
 
-### My z_pos
-POST http://localhost:5000/my/z_pos
+### Z pos cycle
+POST http://localhost:5000/my/z_pos_n
 Accept: application/json
 Content-Type: application/json
 
 {
-  "z_pos": 150
+  "z_pos_start": 80,
+  "z_pos_end": 120,
+  "n": 2
 }
 
