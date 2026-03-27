@@ -32,6 +32,7 @@ class MyThing(lt.Thing):
         super().__init__(thing_server_interface)
         self.tg = None
         self.running = False
+        self._cmd_id = 0
 
     async def __aenter__(self):
         await self.start()        
@@ -52,7 +53,8 @@ class MyThing(lt.Thing):
         return send_stream, receive_stream
 
     async def connect(self):
-        uri = "ws://localhost:7125/websocket" 
+        # uri = "ws://localhost:7125/websocket" 
+        uri = "ws://192.168.1.93/websocket" 
         ws: websockets.ClientConnection = await websockets.connect(uri)
 
         return ws
@@ -79,12 +81,13 @@ class MyThing(lt.Thing):
         await self.tg.__aexit__(None, None, None)
 
     async def send_cmd(self, ws, rx, cmd, task_status=anyio.TASK_STATUS_IGNORED):
-        id = cmd['id']
+        cmd["id"] = self._cmd_id
+        self._cmd_id += 1
 
         await ws.send(json.dumps(cmd).encode())
         while True:
             msg = await rx.receive()
-            if "id" in msg.keys() and msg['id'] == id:
+            if "id" in msg.keys() and msg['id'] == cmd["id"]:
                 print(msg)
                 task_status.started()
                 return msg
@@ -153,3 +156,16 @@ class MyThing(lt.Thing):
         task, result=portal.start_task(self.send_cmd, self.ws, self.rx, g28)
         return task._result
     
+    @lt.action
+    def z_pos(self, z_pos: int, portal: lt.deps.BlockingPortal) -> Any:
+        z150 = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":f"_CLIENT_LINEAR_MOVE Z={z_pos} F=1500 ABSOLUTE=1"},"id":34}
+        task, result=portal.start_task(self.send_cmd, self.ws, self.rx, z150)
+        return task._result
+
+    @lt.action
+    def m84(self, portal: lt.deps.BlockingPortal) -> Any:
+        m84 = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":"m84"},"id":36}
+        task, result=portal.start_task(self.send_cmd, self.ws, self.rx, m84)
+        return task._result
+
+

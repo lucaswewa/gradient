@@ -127,7 +127,6 @@ Accept: application/json
 Content-Type: application/json
 
 {
-  "t": 0
 }
 
 ### My info
@@ -135,6 +134,37 @@ POST http://localhost:5000/my/info
 Accept: application/json
 Content-Type: application/json
 
+{}
+
+### My G28
+POST http://localhost:5000/my/g28
+Accept: application/json
+Content-Type: application/json
+
+{}
+
+### My M84
+POST http://localhost:5000/my/m84
+Accept: application/json
+Content-Type: application/json
+
+{}
+
+### My z_pos
+POST http://localhost:5000/my/z_pos
+Accept: application/json
+Content-Type: application/json
+
 {
-  "t": 0
+  "z_pos": 100
 }
+
+### My z_pos
+POST http://localhost:5000/my/z_pos
+Accept: application/json
+Content-Type: application/json
+
+{
+  "z_pos": 150
+}
+
