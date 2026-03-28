@@ -43,7 +43,7 @@ def _frame2bytes(frame: Image.Image) -> bytes:
         return buf.getvalue()
     
 class FlirCamera(BaseCamera):
-    mjpeg_stream = lt.outputs.MJPEGStreamDescriptor()
+    # mjpeg_stream = lt.outputs.MJPEGStreamDescriptor()
     _stage: BaseStage = lt.thing_slot()
 
     def __init__(self, thing_server_interface):
@@ -69,6 +69,8 @@ class FlirCamera(BaseCamera):
     def cb(self, data):
         image = Image.fromarray(data.astype("uint8"))
         self.mjpeg_stream.add_frame(_frame2bytes(image))
+        ds_frame = image.resize((1280, 960), resample=Image.Resampling.NEAREST)
+        self.lores_mjpeg_stream.add_frame(_frame2bytes(ds_frame))
 
     @lt.action
     def acquire(self):

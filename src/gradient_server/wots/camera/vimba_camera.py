@@ -75,7 +75,7 @@ class VimbaCamera(BaseCamera):
             data = frame.copy()
             image = Image.fromarray(data.astype("uint8"))
             self.mjpeg_stream.add_frame(_frame2bytes(image))
-            ds_frame = image.resize((320, 240), resample=Image.Resampling.NEAREST)
+            ds_frame = image.resize((640, 480), resample=Image.Resampling.NEAREST)
             self.lores_mjpeg_stream.add_frame(_frame2bytes(ds_frame))
 
     def capture_image(

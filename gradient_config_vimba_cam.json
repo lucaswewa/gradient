@@ -4,7 +4,7 @@
         "camera": {
             "class": "gradient_server.wots.camera:VimbaCamera",
             "kwargs": {
-                "device_id": "DEV_1AB22C015989"
+                "device_id": "DEV_1AB22C00CBC8"
             }
         },
         "stage": {
