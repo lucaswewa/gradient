@@ -55,8 +55,9 @@ class CircularBuffer:
 class MyThing(lt.Thing):
     """A test WoT thing."""
 
-    def __init__(self, thing_server_interface):
+    def __init__(self, thing_server_interface: lt.ThingServerInterface, ws_uri: str, **kwargs: Any) -> None:
         super().__init__(thing_server_interface)
+        self.ws_uri = ws_uri
         self.tg = None
         self.running = False
         self._cmd_id = 0
@@ -85,8 +86,8 @@ class MyThing(lt.Thing):
 
     async def connect(self):
         # uri = "ws://localhost:7125/websocket" 
-        uri = "ws://192.168.1.93/websocket" 
-        ws: websockets.ClientConnection = await websockets.connect(uri)
+        # uri = "ws://192.168.1.93/websocket" 
+        ws: websockets.ClientConnection = await websockets.connect(self.ws_uri)
 
         return ws
 
