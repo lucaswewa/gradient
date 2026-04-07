@@ -54,7 +54,7 @@ class BaseHardwareStage:
         return self._position
 
     def move_relative(
-        self, portal: BlockingPortal, block_cancellation: bool = False, **kwargs: int
+        self, thing_server_interface: lt.ThingServerInterface, **kwargs: int
     ) -> None:
         """Make a relative move in the coordinate system used by the physical hardware.
 
@@ -66,8 +66,7 @@ class BaseHardwareStage:
 
     def move_absolute(
         self,
-        portal: BlockingPortal,
-        block_cancellation: bool = False,
+        thing_server_interface: lt.ThingServerInterface,
         **kwargs: int,
     ) -> None:
         """Make a absolute move in the coordinate system used by the physical hardware.
@@ -78,18 +77,18 @@ class BaseHardwareStage:
             "StageThings must define their own _hardware_move_absolute method"
         )
 
-    def stop(self, portal: BlockingPortal) -> None:
+    def stop(self,thing_server_interface: lt.ThingServerInterface) -> None:
         raise NotImplementedError(
             "StageThings must define their own _hardware_stop method"
         )
 
-    def poll_moving(self, portal: BlockingPortal) -> bool:
+    def poll_moving(self, thing_server_interface: lt.ThingServerInterface) -> bool:
         """Determine if the stage is still moving."""
         raise NotImplementedError(
             "StageThings must define their own _poll_moving method"
         )
 
-    def jog(self, portal: BlockingPortal, command: JogCommand) -> None:
+    def jog(self, thing_server_interface: lt.ThingServerInterface, command: JogCommand) -> None:
         """Send a jog command to the background jog thread.
 
         This function will start the background thread if it is not running.
@@ -103,7 +102,7 @@ class BaseHardwareStage:
             "StageThings must define their own jog method"
         )
    
-    def set_zero_position(self, portal: BlockingPortal) -> None:
+    def set_zero_position(self, thing_server_interface: lt.ThingServerInterface) -> None:
         """Make the current position zero in all axes.
 
         This action does not move the stage, but resets the position to zero.
@@ -226,26 +225,24 @@ class BaseStage(lt.Thing):
         self.axis_inverted = direction
 
     @lt.action
-    def move_relative(self, portal: lt.deps.BlockingPortal, block_cancellation: bool = False, **kwargs: int) -> None:
+    def move_relative(self, **kwargs: int) -> None:
         """Make a relative move. Keyword arguments should be axis names."""
         self._hardware_stage.move_relative(
-            portal,
-            block_cancellation=block_cancellation,
+            self._thing_server_interface,
             **self._apply_axis_direction(kwargs),
         )
 
     @lt.action
-    def move_absolute(self, portal: lt.deps.BlockingPortal, block_cancellation: bool = False, **kwargs: int) -> None:
+    def move_absolute(self, **kwargs: int) -> None:
         """Make an absolute move. Keyword arguments should be axis names."""
         LOGGER.info("[BaseStage::move_absolute]")
         self._hardware_stage.move_absolute(
-            portal,
-            block_cancellation=block_cancellation,
+            self._thing_server_interface,
             **self._apply_axis_direction(kwargs),
         )
 
     @lt.action
-    def jog(self, portal: lt.deps.BlockingPortal, stop: bool = False, **kwargs: int) -> None:
+    def jog(self, stop: bool = False, **kwargs: int) -> None:
         """Make a relative move that may be interrupted by a future ``jog``.
 
         This action makes a relative move. If another ``jog`` action is called while
@@ -258,7 +255,7 @@ class BaseStage(lt.Thing):
         """
         if stop:
             LOGGER.info(f"[BaseStage::jog] stop the jog action")
-            self._hardware_stage.jog(portal, JogCommand(None))
+            self._hardware_stage.jog(self._thing_server_interface, JogCommand(None))
             return
 
         hardware_moves = self._apply_axis_direction(kwargs)
@@ -268,11 +265,11 @@ class BaseStage(lt.Thing):
                 "Requested jog movement is is empty. Sending STOP instead."
             )
             LOGGER.info(f"[BaseStage::jog] stop the jog action")
-            self._hardware_stage.jog(portal, JogCommand(None))
+            self._hardware_stage.jog(self._thing_server_interface, JogCommand(None))
         else:
             move_cmd = JogCommand(move)
             LOGGER.info(f"[BaseStage::jog] start the jog action, move={move_cmd}")
-            self._hardware_stage.jog(portal, move_cmd)
+            self._hardware_stage.jog(self._thing_server_interface, move_cmd)
 
     @lt.action
     def set_zero_position(self) -> None:
@@ -296,7 +293,7 @@ class BaseStage(lt.Thing):
         return (position_dict["x"], position_dict["y"], position_dict["z"])
 
     @lt.action
-    def move_to_xyz_position(self, portal: lt.deps.BlockingPortal, xyz_pos: tuple[int, int, int]) -> None:
+    def move_to_xyz_position(self, xyz_pos: tuple[int, int, int]) -> None:
         """Move to the location specified by an (x, y, z) tuple.
 
         :param xyz_pos: The (x, y, z) position to move to.
@@ -305,4 +302,4 @@ class BaseStage(lt.Thing):
 
         This method provides the interface expected by the camera_stage_mapping.
         """
-        self.move_absolute(portal, x=xyz_pos[0], y=xyz_pos[1], z=xyz_pos[2])
+        self.move_absolute(self._thing_server_interface, x=xyz_pos[0], y=xyz_pos[1], z=xyz_pos[2])

@@ -200,3 +200,16 @@ Accept: application/json
 ### Get temp2
 GET http://localhost:5000/my/temp2_history
 Accept: application/json
+
+### Camera
+POST http://localhost:8080/camera/start_service
+Content-Type: application/json
+
+{}
+
+### Camera
+POST http://localhost:8080/camera/stop_service
+Content-Type: application/json
+
+{}
+

@@ -148,19 +148,19 @@ class SimuatedHardwareStage(BaseHardwareStage):
         pass
 
     def move_relative(
-        self, portal: BlockingPortal, block_cancellation: bool = False, **kwargs: int
+        self, thing_server_interface: lt.ThingServerInterface, block_cancellation: bool = False, **kwargs: int
     ) -> None:
         """Make a relative move in the coordinate system used by the physical hardware.
 
         Make sure to use and update ``self._hardware_position`` not ``self.position``.
         """
         c = Cmd(cmd="move_relative", val=kwargs, evt=threading.Event())
-        portal.call(self._queue.put, c)
+        thing_server_interface.call_async_task(self._queue.put, c)
         c.evt.wait()
     
     def move_absolute(
         self,
-        portal: BlockingPortal,
+        thing_server_interface: lt.ThingServerInterface,
         block_cancellation: bool = False,
         **kwargs: int,
     ) -> None:
@@ -170,7 +170,7 @@ class SimuatedHardwareStage(BaseHardwareStage):
         """
         # self._position = {"x": 0, "y": 0, "z": 0}
         c = Cmd(cmd="move_absolute", val=kwargs, evt=threading.Event())
-        portal.call(self._queue.put, c)
+        thing_server_interface.call_async_task(self._queue.put, c)
         c.evt.wait()
 
     def stop(self) -> None:
@@ -184,7 +184,7 @@ class SimuatedHardwareStage(BaseHardwareStage):
             "StageThings must define their own _poll_moving method"
         )
     
-    def jog(self, portal: BlockingPortal, command: JogCommand) -> None:
+    def jog(self, thing_server_interface: lt.ThingServerInterface, command: JogCommand) -> None:
         """Send a jog command to the background jog thread.
 
         This function will start the background thread if it is not running.
@@ -194,7 +194,7 @@ class SimuatedHardwareStage(BaseHardwareStage):
 
         :param command: the jog command to send.
         """
-        self.move_relative(portal, x=100)
+        self.move_relative(thing_server_interface, x=100)
 
     def set_zero_position(self) -> None:
         """Make the current position zero in all axes.

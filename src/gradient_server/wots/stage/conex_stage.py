@@ -37,12 +37,12 @@ class ConexStage(BaseStage):
         self._stage.exit_stage()
 
     @lt.action
-    def move_abs(self, position: float, portal: lt.deps.BlockingPortal, block_cancellation: bool = False) -> None:
+    def move_abs(self, position: float) -> None:
         """Make a absolute move. Keyword arguments should be axis names."""
         self._stage.move_absolute(position)    
 
     @lt.action
-    def move_rel(self, delta: float, portal: lt.deps.BlockingPortal, block_cancellation: bool = False) -> None:
+    def move_rel(self, delta: float) -> None:
         """Make a relative move. Keyword arguments should be axis names."""
         self._stage.move_relative(delta)    
 

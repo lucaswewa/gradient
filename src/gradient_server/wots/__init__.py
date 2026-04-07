@@ -19,10 +19,10 @@ async def async_method(t):
     await anyio.sleep(t)
     print("async method done!")
 
-def sync_method(t, r, portal: BlockingPortal):
+def sync_method(t, r, thing_server_interface: lt.ThingServerInterface):
     print(f"Sync method: start {r}")
     time.sleep(t)
-    portal.call(async_method, t)
+    thing_server_interface.call_async_task(async_method, t)
     print(f"sync method: done! {r}")
 
 class CircularBuffer:
@@ -180,79 +180,79 @@ class MyThing(lt.Thing):
         return "ai"
 
     @lt.action
-    def start_ws(self, portal: lt.deps.BlockingPortal) -> Any:
+    def start_ws(self) -> Any:
 
-        task, status = portal.start_task(self.start)
+        task = self._thing_server_interface.call_async_task(self.start)
         print(task)
-        return task._result
+        return task
 
     @lt.action
-    def end_ws(self, portal: lt.deps.BlockingPortal) -> Any:
+    def end_ws(self) -> Any:
 
-        task, status = portal.start_task(self.end)
-        print(task)
-        return task._result
+        task = self._thing_server_interface.call_async_task(self.end)
+        return task
 
     @lt.action
-    def conn(self, portal: lt.deps.BlockingPortal) -> Any:
+    def conn(self) -> Any:
         conn = {"jsonrpc":"2.0","method":"server.connection.identify","params":{"client_name":"mainsail111","version":"2.17.0","type":"web","url":"https://github.com/mainsail-crew/mainsail"},"id":0}
 
-        task, status = portal.start_task(self.send_cmd, self.ws, self.rx, conn)
+        task = self._thing_server_interface.call_async_task(self.send_cmd, self.ws, self.rx, conn)
         print(task)
-        return task._result
+        return task
 
     @lt.action
-    def begin_session(self, portal: lt.deps.BlockingPortal) -> Any:
+    def begin_session(self) -> Any:
         sub = {"jsonrpc":"2.0","method":"printer.objects.subscribe","params":{"objects":{"gcode":None,"webhooks":None,"configfile":None,"mcu":None,"stepper_enable":None,"tmc2209 stepper_x":None,"tmc2209 stepper_y":None,"tmc2209 stepper_z":None,"tmc2209 stepper_z1":None,"tmc2209 stepper_z2":None,"tmc2209 extruder":None,"heaters":None,"heater_bed":None,"probe":None,"gcode_move":None,"bed_mesh":None,"fan":None,"heater_fan hotend_fan":None,"controller_fan controller_fan":None,"idle_timeout":None,"z_tilt":None,"display_status":None,"gcode_macro PRINT_START":None,"gcode_macro PRINT_END":None,"print_stats":None,"virtual_sdcard":None,"pause_resume":None,"gcode_macro CANCEL_PRINT":None,"gcode_macro PAUSE":None,"gcode_macro RESUME":None,"gcode_macro SET_PAUSE_NEXT_LAYER":None,"gcode_macro SET_PAUSE_AT_LAYER":None,"gcode_macro SET_PRINT_STATS_INFO":None,"gcode_macro _TOOLHEAD_PARK_PAUSE_CANCEL":None,"gcode_macro _CLIENT_EXTRUDE":None,"gcode_macro _CLIENT_RETRACT":None,"gcode_macro _CLIENT_LINEAR_MOVE":None,"query_endstops":None,"motion_report":None,"toolhead":None,"extruder":None,"system_stats":None,"manual_probe":None}},"id":30}
-        task, status = portal.start_task(self.send_cmd, self.ws, self.rx, sub)
+        task = self._thing_server_interface.call_async_task(self.send_cmd, self.ws, self.rx, sub)
         print(task)
-        return task._result
+        return task
 
 
     @lt.action
-    def info(self, portal: lt.deps.BlockingPortal) -> Any:
+    def info(self) -> Any:
         info = {"jsonrpc":"2.0","method":"server.info","params":{},"id":1}
 
-        task, status = portal.start_task(self.send_cmd, self.ws, self.rx, info)
-        return task._result
+        task = self._thing_server_interface.call_async_task(self.send_cmd, self.ws, self.rx, info)
+        return task
 
     @lt.action
-    def g28(self, portal: lt.deps.BlockingPortal) -> Any:
+    def g28(self) -> Any:
         g28 = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":"G28"},"id":2}
 
-        task, result=portal.start_task(self.send_cmd, self.ws, self.rx, g28)
-        return task._result
+        print(g28)
+        task=self._thing_server_interface.call_async_task(self.send_cmd, self.ws, self.rx, g28)
+        return task
     
     @lt.action
-    def z_pos(self, z_pos: int, portal: lt.deps.BlockingPortal) -> Any:
+    def z_pos(self, z_pos: int) -> Any:
         z150 = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":f"_CLIENT_LINEAR_MOVE Z={z_pos} F=1500 ABSOLUTE=1"},"id":34}
-        task, result=portal.start_task(self.send_cmd, self.ws, self.rx, z150)
-        return task._result
+        task=self._thing_server_interface.call_async_task(self.send_cmd, self.ws, self.rx, z150)
+        return task
 
     @lt.action
-    def m84(self, portal: lt.deps.BlockingPortal) -> Any:
+    def m84(self) -> Any:
         m84 = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":"m84"},"id":36}
-        task, result=portal.start_task(self.send_cmd, self.ws, self.rx, m84)
-        return task._result
+        task=self._thing_server_interface.call_async_task(self.send_cmd, self.ws, self.rx, m84)
+        return task
 
     @lt.action
-    def z_pos_n(self, z_pos_start: int, z_pos_end: int, n: int, portal: lt.deps.BlockingPortal) -> Any:
+    def z_pos_n(self, z_pos_start: int, z_pos_end: int, n: int) -> Any:
         for i in range(n):
             cmd1 = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":f"_CLIENT_LINEAR_MOVE Z={z_pos_start} F=1500 ABSOLUTE=1"},"id":34}
-            task, result=portal.start_task(self.send_cmd, self.ws, self.rx, cmd1)
+            task=self._thing_server_interface.call_async_task(self.send_cmd, self.ws, self.rx, cmd1)
             time.sleep(0.25)
             cmd2 = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":f"_CLIENT_LINEAR_MOVE Z={z_pos_end} F=1500 ABSOLUTE=1"},"id":34}
-            task, result=portal.start_task(self.send_cmd, self.ws, self.rx, cmd2)
+            task=self._thing_server_interface.call_async_task(self.send_cmd, self.ws, self.rx, cmd2)
             time.sleep(0.25)
 
-        return task._result
+        return task
 
     @lt.action
-    def xy_pos(self, portal: lt.deps.BlockingPortal, x_pos: int = None, y_pos: int = None) -> Any:
+    def xy_pos(self, x_pos: int = None, y_pos: int = None) -> Any:
         x = f"X={x_pos}" if x_pos is not None else ""
         y = f"Y={y_pos}" if y_pos is not None else ""
         xy = x + " " + y
         xy = xy.strip()
         cmd = {"jsonrpc":"2.0","method":"printer.gcode.script","params":{"script":f"_CLIENT_LINEAR_MOVE {xy} F=6000 ABSOLUTE=1"},"id":38}
-        task, result = portal.start_task(self.send_cmd, self.ws, self.rx, cmd)
-        return task._result
+        task = self._thing_server_interface.call_async_task(self.send_cmd, self.ws, self.rx, cmd)
+        return task
