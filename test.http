@@ -213,3 +213,47 @@ Content-Type: application/json
 
 {}
 
+### Camera
+POST http://localhost:8080/camera/start
+Content-Type: application/json
+
+{}
+
+### Camera
+POST http://localhost:8080/camera/stop
+Content-Type: application/json
+
+{}
+
+### Camera
+POST http://localhost:8080/camera/capture
+Content-Type: application/json
+
+{}
+
+### Camera
+GET http://localhost:8080/camera/exposure_time
+
+### Camera
+PUT http://localhost:8080/camera/exposure_time
+Content-Type: application/json
+
+20000.0
+
+### Camera
+POST http://localhost:8080/camera/arm
+Content-Type: application/json
+
+{}
+
+### Camera
+POST http://localhost:8080/camera/disarm
+Content-Type: application/json
+
+{}
+
+### Camera
+POST http://localhost:8080/camera/software_trigger
+Content-Type: application/json
+
+{}

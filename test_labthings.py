@@ -37,7 +37,81 @@ import labthings_fastapi as lt
 from PIL import Image
 import io
 
+import numpy as np
+import vmbpy
+import time
 
+from typing import Callable
+import threading
+import cv2
+from vmbx import VmbX
+class VmbX1:    
+    def __init__(self, device_id: str = None, frame_handler: Callable = None):
+        super().__init__()
+        self.vimba: vmbpy.VmbSystem = vmbpy.VmbSystem.get_instance()
+        self.camera: vmbpy.Camera = None
+        self.lock = threading.RLock()
+        self.alock = anyio.Lock()
+
+        self._exposure_time = 0.0
+        self._counter = 0
+
+    async def __aenter__(self):
+        await anyio.to_thread.run_sync(self.__enter__)
+
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await anyio.to_thread.run_sync(self.__exit__, exc_type, exc, tb)
+
+    def __enter__(self):
+        with self.lock:
+            self.vimba.__enter__()
+
+            self.camera = self.vimba.get_all_cameras()[0]
+            self.camera.__enter__()
+            
+    def __exit__(self, exc_type, exc, tb):
+        with self.alock:
+            if self.camera:
+                self.camera.__exit__(exc_type, exc, tb)
+            self.vimba.__exit__(exc_type, exc, tb)
+
+    def start_streaming(self, cb):
+        self.cb = cb
+        self.camera.start_streaming(self.frame_handler, buffer_count=10)
+
+    def stop_streaming(self):
+        self.camera.stop_streaming()
+        self.cb = None
+
+    def frame_handler(self, cam: vmbpy.Camera, stream: vmbpy.Stream, frame: vmbpy.Frame):
+        self._counter += 1
+        image = frame.as_numpy_ndarray()
+        image = image.reshape(image.shape[0:2])
+
+        if self.cb is not None:
+            self.cb(image)
+
+        cam.queue_frame(frame)
+
+    def set_exposure_time(self, exposure_time: float):
+        self.camera.ExposureTime.set(exposure_time)
+        return self.get_exposure_time()
+    
+    def get_exposure_time(self) -> float:
+        self._exposure_time = self.camera.ExposureTime.get()
+        return self._exposure_time
+    
+    def grab_one(self):
+        """Grab one frame from the camera and return it as a numpy ndarray, using camera's current settings."""
+
+        frame = self.camera.get_frame()
+        frame_data = frame.as_numpy_ndarray()
+        frame_data = frame_data.reshape(frame_data.shape[0:2])
+
+        return frame_data    
+    
 @dataclass
 class RingbufferEntry:
     frame: bytes
@@ -51,16 +125,15 @@ class MJPEGStreamResponse(StreamingResponse):
         StreamingResponse.__init__(
             self,
             self.mjpeg_stream_generator(),
+            headers={"Cache-Control": "no-cache", "Pragma": "no-cache", "age": "0"},
             media_type=self.media_type,
             status_code=status_code
         )
         
     async def mjpeg_stream_generator(self):
         async for frame in self.frame_async_generator:
-            yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n"
-            # yield b"--frame\r\nContent-Type: image/png\r\n\r\n"
-            yield frame
-            yield b"\r\n"
+            yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
+            await anyio.sleep(0)
 
 class MJPEGStreamAsync:
     def __init__(self, thing_server_interface, ringbuffer_size=10):
@@ -217,6 +290,7 @@ class Camera(lt.Thing):
         self.thing_server_interface = thing_server_interface
         self.gen = None
         self.streaming = True
+        self.vmbx = VmbX(device_id="DEV_1AB22C00CBC8", frame_handler=self.frame_handler)
 
     async def __aenter__(self):
         self.gen = self.thing_life_span()
@@ -229,60 +303,75 @@ class Camera(lt.Thing):
         except StopAsyncIteration:
             pass
 
-    async def stream_service(self):
-        t0 = time.time()
-        counter = 0
-
-        print("Stream service started")
-        while self.streaming:
-            img = np.random.randint(0, 255, (768, 1024, 3), dtype=np.uint8)
-            frame = Image.fromarray(img)
-            b = _frame2bytes(frame)
+    async def queue_service(self) -> None:
+        async for item in self.receive_stream:
+            frame = Image.fromarray(item)
+            resized_img = frame.resize((frame.width // 3, frame.height // 3), Image.Resampling.LANCZOS)
+            b = _frame2bytes(resized_img)
+            print("frame in queue")
             await self.mjpeg_stream.add_frame(b)
 
-            await anyio.sleep(0.03)
-
-            td = time.time() - t0
-            if td >= 5:
-                print(f"Streamed {counter} frames in {td:.2f} seconds ({counter/td:.2f} FPS)")
-                t0 = time.time()
-                counter = 0
-            counter += 1
-        print("stream_service stopped")
-
-    async def service(self) -> None:
-        async for item in self.receive_stream:
-            print("consuming", item)
 
     async def thing_life_span(self):
         """A simple service that prints the light's status every second."""
         try:
             async with anyio.create_task_group() as self.tg:
-                self.tg.start_soon(self.stream_service)
                 self.send_stream, self.receive_stream = create_memory_object_stream()
                 async with self.send_stream, self.receive_stream:
-                    self.tg.start_soon(self.service)
-                    print("before yield:")
-                    yield
-                    print("after yield:")
-                    await anyio.sleep(1)
+                    self.tg.start_soon(self.queue_service)
+                    async with self.vmbx:
+                        print("before yield:")
+                        yield
+                        print("after yield:")
+                        await anyio.sleep(1)
         except anyio.get_cancelled_exc_class():
             print("thing_life_span cancelled")
             raise
         except Exception as e:
             print("thing_life_span exception", e)
             raise
-    
-    @lt.action
-    def start_service(self) -> str:
-        self.streaming = True
-        self._thing_server_interface.start_async_task_soon(self.stream_service)
-        return "service started"
+
+    def frame_handler(self, frame):
+        print(frame.shape)
+        self._thing_server_interface.call_async_task(self.send_stream.send, frame)
+        cv2.imwrite(f"frame_{time.time()}.jpg", frame)
 
     @lt.action
-    def stop_service(self) -> str:
-        self.streaming = False  
-        return "service stopped"
+    def start(self):
+        print("Starting camera streaming")
+        self.vmbx.start_streaming()
+        print("Camera streaming started")
+
+    @lt.action
+    def stop(self):
+        print("Stopping camera streaming")
+        self.vmbx.stop_streaming()
+        print("Camera streaming stopped")
+
+    @lt.action
+    def capture(self):
+        frame = self.vmbx.grab_one()
+        return frame
+
+    @lt.property
+    def exposure_time(self) -> float:
+        return self.vmbx.get_exposure_time()
+    
+    @exposure_time.setter
+    def _set_exposure_time(self, exposure_time: float):
+        return self.vmbx.set_exposure_time(exposure_time)
+    
+    @lt.action
+    def arm(self):
+        self.vmbx.arm()
+
+    @lt.action
+    def disarm(self):
+        self.vmbx.disarm()
+
+    @lt.action
+    def software_trigger(self):
+        self.vmbx.software_trigger()
 
 server = lt.ThingServer({"camera": Camera})
 
