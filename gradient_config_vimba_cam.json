@@ -1,6 +1,5 @@
 {
     "things": {
-        "my": "gradient_server.wots:MyThing",
         "camera": {
             "class": "gradient_server.wots.camera:VimbaCamera",
             "kwargs": {

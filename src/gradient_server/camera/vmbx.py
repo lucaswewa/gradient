@@ -12,6 +12,7 @@ import time
 from typing import Callable
 import threading
 import cv2
+import anyio
 
 class VmbX:    
     def __init__(self, device_id: str = None, frame_handler: Callable = None):
@@ -28,10 +29,13 @@ class VmbX:
         self._device_id = device_id
         self._frame_handler = frame_handler
 
-        self.accu_frame_counts = 0
-        self.sw_counter = 0
+    async def __aenter__(self):
+        await anyio.to_thread.run_sync(self.__enter__)
 
-    def enter_camera(self):
+    async def __aexit__(self, exc_type, exc, tb):
+        await anyio.to_thread.run_sync(self.__exit__, exc_type, exc, tb)
+
+    def __enter__(self):
         with self.lock:
             if not self.vimba._context_entered:
                 self.vimba.__enter__()
@@ -48,29 +52,43 @@ class VmbX:
 
             if not self.camera._context_entered:
                 self.camera.__enter__()
-                print("info: ENTERED camera context")
-                ft = self.camera.get_feature_by_name("DeviceReset")
-                ft.run()
-                self.camera._close()
+                # uncomment the following if we want to reset the camera
+                # print("info: ENTERED camera context")
+                # ft = self.camera.get_feature_by_name("DeviceReset")
+                # ft.run()
+                # self.camera._close()
 
-                import time
-                time.sleep(10)
-                if self._device_id is not None:
-                    self.camera = self.vimba.get_camera_by_id(self._device_id)
-                else:
-                    cameras = self.vimba.get_all_cameras()
-                    self.camera = cameras[0]
-                self.camera.set_access_mode(vmbpy.AccessMode.Full)
-                self.camera.__enter__()
+                # import time
+                # time.sleep(10)
+                # if self._device_id is not None:
+                #     self.camera = self.vimba.get_camera_by_id(self._device_id)
+                # else:
+                #     cameras = self.vimba.get_all_cameras()
+                #     self.camera = cameras[0]
+                # self.camera.set_access_mode(vmbpy.AccessMode.Full)
+                # self.camera.__enter__()
             else:
                 print("error: ALREADY in camera context")
 
             self.camera.stop_streaming()
 
-            self._exposure_time = self.get_exposure_time_in_us()
+            self._exposure_time = self.get_exposure_time()
             self._gain = self.get_gain()
             self._pixel_format = self.get_pixel_format()
         
+    def __exit__(self, exc_type, exc, tb):
+        with self.lock:
+            if self.camera and self.camera._context_entered:
+                self.camera.__exit__(exc_type, exc, tb)
+                print("info: Exited the camera context")
+            else:
+                print("error: NOT in camera context")
+
+            if self.vimba._context_entered:
+                self.vimba.__exit__(exc_type, exc, tb)
+                print("info: EXITED the vimbasystem context")
+            else:
+                print("error: NOT in vimbasystem context")
 
     def start_streaming(self):
         if not self.camera._context_entered:
@@ -78,11 +96,10 @@ class VmbX:
             return
         
         if not self.camera.is_streaming():
-            self.camera.UserSetSelector.set('Default')
-            
-            # 2. Execute Load Command
-            self.camera.UserSetLoad.run()            
-            self.camera.start_streaming(handler=self.frame_handler, buffer_count=10)
+            # self.camera.UserSetSelector.set('Default')
+            # self.camera.UserSetLoad.run()            
+
+            self.camera.start_streaming(handler=self._streaming_frame_handler, buffer_count=10)
             print("info: the camera STARTED streaming")
         else:
             print("error: the camera is ALREADY in streaming")
@@ -105,26 +122,12 @@ class VmbX:
 
         return self.camera.is_streaming()
     
-    def exit_camera(self):
-        with self.lock:
-            if self.camera and self.camera._context_entered:
-                self.camera.__exit__(None, None, None)
-                print("info: Exited the camera context")
-            else:
-                print("error: NOT in camera context")
-
-            if self.vimba._context_entered:
-                self.vimba.__exit__(None, None, None)
-                print("info: EXITED the vimbasystem context")
-            else:
-                print("error: NOT in vimbasystem context")
-
-    def set_exposure_time_in_us(self, exposure_time_in_us):
+    def set_exposure_time(self, exposure_time_in_us):
         if exposure_time_in_us != self._exposure_time:
             self.camera.ExposureTime.set(exposure_time_in_us)
-            return self.get_exposure_time_in_us()
+            return self.get_exposure_time()
 
-    def get_exposure_time_in_us(self):
+    def get_exposure_time(self):
         self._exposure_time = self.camera.ExposureTime.get()
         return self._exposure_time
 
@@ -149,30 +152,28 @@ class VmbX:
     
     def grab_one(self):
         """Grab one frame from the camera and return it as a numpy ndarray, using camera's current settings."""
-
+        if not self.camera._context_entered:
+            print("error: NOT in camera context")
+            return None
+        
         frame = self.camera.get_frame()
         frame_data = frame.as_numpy_ndarray()
         frame_data = frame_data.reshape(frame_data.shape[0:2])
 
         return frame_data
     
-    def frame_handler(self, cam: vmbpy.Camera, stream: vmbpy.Stream, frame: vmbpy.Frame):
+    def _streaming_frame_handler(self, cam: vmbpy.Camera, stream: vmbpy.Stream, frame: vmbpy.Frame):
         image = frame.as_numpy_ndarray()
         image = image.reshape(image.shape[0:2])
-        self.accu_frame_counts += 1
         if self._frame_handler:
             self._frame_handler(image)
         cam.queue_frame(frame)
 
     def sw_frame_handler(self, cam: vmbpy.Camera, stream: vmbpy.Stream, frame: vmbpy.Frame):
-        print(f"7: {time.time()}")
         image = frame.as_numpy_ndarray()
         image = image.reshape(image.shape[0:2])
-        self.accu_frame_counts += 1
         if self._frame_handler:
             self._frame_handler(image)
-        self.sw_counter += 1
-        time.sleep(1)
         cam.queue_frame(frame)
 
 
@@ -181,19 +182,13 @@ class VmbX:
         self.camera.TriggerSelector.set("FrameStart")
         self.camera.TriggerSource.set("Software")
         self.camera.TriggerMode.set("On")
-        print(f"1: {time.time()}")
         self.camera.start_streaming(handler=self.sw_frame_handler, buffer_count=10)
-        print(f"1.1: started streaming")
 
     def software_trigger(self):
-        print(f"3: {time.time()}")
         self.camera.TriggerSoftware.run()
-        print(f"4: {time.time()}")
 
     def disarm(self):
         time.sleep(0.001)
-        print(f"5: {time.time()}")
         self.camera.stop_streaming()
         self.camera.TriggerMode.set("Off")
         self.camera.TriggerSelector.set("AcquisitionStart")
-        print(f"6: {time.time()}")

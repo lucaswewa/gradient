@@ -7,7 +7,8 @@ See repository root for licensing information.
 """
 
 from __future__ import annotations
-
+from dataclasses import dataclass
+from datetime import datetime
 import io
 import logging
 import re
@@ -19,10 +20,25 @@ from typing import Literal, Mapping, Optional, overload
 
 import numpy as np
 from PIL import Image, ImageFilter
+import anyio
 
 import labthings_fastapi as lt
 from labthings_fastapi.types.numpy import NDArray
+from labthings_fastapi import Thing, ThingServerInterface
+
 import cv2
+from fastapi.responses import StreamingResponse, HTMLResponse
+from contextlib import asynccontextmanager
+from typing import (
+    Any,
+    AsyncGenerator,
+    AsyncIterator,
+    Literal,
+    Optional,
+    TYPE_CHECKING,
+    Union,
+    overload,
+)
 
 from gradient_server.wots.camera.simulation_camera import _frame2bytes
 from gradient_server.wots.stage import BaseStage
@@ -30,6 +46,7 @@ from gradient_server.wots.stage import BaseStage
 from ..projector import SimulatedProjector
 from ..stage import SimulatedStage
 from .base_camera import BaseCamera
+from .async_mjpeg_stream import MJPEGStreamAsyncDescriptor
 from ...camera.vmbx import VmbX
 
 LOGGER = logging.getLogger(__name__)
@@ -38,6 +55,8 @@ class VimbaCamera(BaseCamera):
     """Thing representing a camera that can be used for autofocus and imaging."""
 
     _stage: BaseStage = lt.thing_slot()
+    mjpeg_stream = MJPEGStreamAsyncDescriptor()
+    lores_mjpeg_stream = MJPEGStreamAsyncDescriptor()
 
     def __init__(
         self,
@@ -46,6 +65,7 @@ class VimbaCamera(BaseCamera):
         device_id: str = None,
         **kwargs) -> None:
         super().__init__(thing_server_interface)
+        self.gen = None
         self._capture_enabled = False
         self.frame_interval = frame_interval
         self._vmbx_lock = threading.RLock()
@@ -54,29 +74,56 @@ class VimbaCamera(BaseCamera):
         self.shutter_on = True
         self.c = 1
 
-    def __enter__(self):
-        super().__enter__()
-        self._vmbx.enter_camera()
-        self.start_streaming()
+    async def __aenter__(self):
+        self.gen = self.thing_life_span()
+        await anext(self.gen)
+        # self.start_streaming()
         return self
     
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: Optional[type[BaseException]],
         exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
     ) -> None:
-        self._vmbx.exit_camera()
-        super().__exit__(exc_type, exc_value, traceback)
+        try:
+            await anext(self.gen)
+        except StopAsyncIteration:
+            pass
+
+    async def thing_life_span(self):
+        try:
+            async with anyio.create_task_group() as self.tg:
+                self.send_stream, self.receive_stream = anyio.create_memory_object_stream()
+                async with self.send_stream, self.receive_stream:
+                    self.tg.start_soon(self.queue_service)
+                    async with self._vmbx:
+                        print("before yield")
+                        yield
+                        print("after yield")
+                        await anyio.sleep(1)
+        except anyio.get_cancelled_exc_class():
+            print("thing_life_span cancelled")
+            raise
+        except Exception as e:
+            print("thing_life_span execution", e)
+            raise
+
+    async def queue_service(self) -> None:
+        async for item in self.receive_stream:
+            frame = Image.fromarray(item)
+            ds_frame = frame.resize((640, 480), resample=Image.Resampling.NEAREST)
+            b = _frame2bytes(frame)
+            b_ds = _frame2bytes(ds_frame)
+
+            await self.mjpeg_stream.add_frame(b)
+            await self.lores_mjpeg_stream.add_frame(b_ds)
 
     def frame_handler(self, frame: NDArray) -> None:
         """Handle a new frame from the VmbX camera."""
         with self._vmbx_lock:
             data = frame.copy()
-            image = Image.fromarray(data.astype("uint8"))
-            self.mjpeg_stream.add_frame(_frame2bytes(image))
-            ds_frame = image.resize((640, 480), resample=Image.Resampling.NEAREST)
-            self.lores_mjpeg_stream.add_frame(_frame2bytes(ds_frame))
+            self._thing_server_interface.call_async_task(self.send_stream.send, data)
 
     def capture_image(
         self,
@@ -128,11 +175,11 @@ class VimbaCamera(BaseCamera):
 
     @lt.property
     def exposure_time(self) -> float:
-        return self._vmbx.get_exposure_time_in_us()
+        return self._vmbx.get_exposure_time()
     
     @exposure_time.setter
     def _set_exposure_time(self, exp_time: float) -> None:
-        self._vmbx.set_exposure_time_in_us(exp_time)
+        self._vmbx.set_exposure_time(exp_time)
 
     @lt.property
     def gain(self) -> float:
