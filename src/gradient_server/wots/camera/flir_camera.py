@@ -85,10 +85,6 @@ class FlirCamera(BaseCamera):
     def stop_streaming(self):
         self.cam.stop_streaming()
 
-    @lt.action
-    def software_trigger(self):
-        self.cam.trigger_and_capture()
-
     @lt.property
     def is_streaming(self) -> bool:
         return self.cam.is_streaming()
@@ -126,4 +122,4 @@ class FlirCamera(BaseCamera):
     @lt.action
     def software_trigger(self) -> None:
         """Set the simulated LED to on or off."""
-        image_data = self.cam.trigger_and_capture()
+        image_data = self.cam.trigger_and_capture(1)
