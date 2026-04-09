@@ -60,7 +60,17 @@ class GradientThing(ABC, lt.Thing):
 
     async def __aenter__(self):
         self.gen = self.life_span()
-        await anext(self.gen)
+        try:
+            await anext(self.gen)
+        except anyio.get_cancelled_exc_class():
+            print("thing_life_span cancelled")
+            raise
+        except Exception as e:
+            print("thing_life_span execution", e)
+            raise
+
+
+        # await anext(self.gen)
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -68,7 +78,13 @@ class GradientThing(ABC, lt.Thing):
             await anext(self.gen)
         except StopAsyncIteration:
             pass
-
+        except anyio.get_cancelled_exc_class():
+            print("thing_life_span cancelled")
+            raise
+        except Exception as e:
+            print("thing_life_span execution", e)
+            raise
+        
     @abstractmethod
     async def life_span(self):
         pass

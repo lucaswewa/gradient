@@ -18,8 +18,10 @@ from PIL import Image, ImageFilter
 
 import labthings_fastapi as lt
 from labthings_fastapi.types.numpy import NDArray
+import anyio
 
 from .base_projector import BaseProjector
+from .. import GradientThing
 
 LOGGER = logging.getLogger(__name__)
 
@@ -98,7 +100,7 @@ def colour_str_to_colour(colour_str: str) -> tuple[int, int, int]:
     return r, g, b
 
 
-class SimulatedProjector(BaseProjector):
+class SimulatedProjector(BaseProjector, GradientThing):
     """A simulated projector for testing."""
 
     def __init__(
@@ -137,6 +139,12 @@ class SimulatedProjector(BaseProjector):
         self.led_on = True
 
     _blob_density: int = 400
+
+    async def life_span(self):
+        print("before yield")
+        yield
+        print("after yield")
+        await anyio.sleep(1)
 
     @lt.property
     def blob_density(self) -> int:

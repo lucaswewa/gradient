@@ -237,7 +237,9 @@ class SimulatedCamera(BaseCamera, GradientThing):
         try:
             self.start_streaming()
             yield
+            print("after yield simulated camera1")
             self.stop_streaming()
+            print("after yield simulated camera2")
             await anyio.sleep(1)
         except anyio.get_cancelled_exc_class():
             print("thing_life_span cancelled")
@@ -276,7 +278,8 @@ class SimulatedCamera(BaseCamera, GradientThing):
     def stop_streaming(self):
             if self._capture_thread is not None and self._capture_thread.is_alive():
                 self._capture_enabled = False
-                self._capture_thread.join()
+                time.sleep(1)
+                self._capture_thread.join(timeout=1)
 
     @lt.property
     def stream_active(self) -> bool:
