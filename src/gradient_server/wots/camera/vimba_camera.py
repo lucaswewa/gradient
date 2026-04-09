@@ -46,7 +46,6 @@ from gradient_server.wots.stage import BaseStage
 from ..projector import SimulatedProjector
 from ..stage import SimulatedStage
 from .base_camera import BaseCamera
-from .async_mjpeg_stream import MJPEGStreamAsyncDescriptor
 from ...camera.vmbx import VmbX
 from .. import GradientThing
 
@@ -56,8 +55,6 @@ class VmbXCamera(BaseCamera, GradientThing):
     """VmbX camera Thing."""
 
     _stage: BaseStage = lt.thing_slot()
-    mjpeg_stream = MJPEGStreamAsyncDescriptor()
-    lores_mjpeg_stream = MJPEGStreamAsyncDescriptor()
 
     def __init__(
         self,
@@ -98,8 +95,8 @@ class VmbXCamera(BaseCamera, GradientThing):
             b = _frame2bytes(image)
             b_ds = _frame2bytes(ds_image)
 
-            self._thing_server_interface.call_async_task(self.mjpeg_stream.add_frame, b)
-            self._thing_server_interface.call_async_task(self.lores_mjpeg_stream.add_frame, b_ds)
+            self.mjpeg_stream.add_frame(b)
+            self.lores_mjpeg_stream.add_frame(b_ds)
 
     def capture_image(
         self,
