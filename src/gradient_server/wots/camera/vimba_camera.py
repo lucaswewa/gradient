@@ -66,7 +66,6 @@ class VmbXCamera(BaseCamera, GradientThing):
         device_id: str = None,
         **kwargs) -> None:
         super().__init__(thing_server_interface=thing_server_interface)
-        self.gen = None
         self._capture_enabled = False
         self.frame_interval = frame_interval
         self._vmbx_lock = threading.RLock()

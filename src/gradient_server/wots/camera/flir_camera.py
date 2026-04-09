@@ -16,6 +16,7 @@ from PIL import Image, ImageFilter
 import labthings_fastapi as lt
 from labthings_fastapi.types.numpy import NDArray
 import cv2
+import anyio
 
 from gradient_server.wots.camera.simulation_camera import _frame2bytes
 from gradient_server.wots.stage import BaseStage
@@ -31,6 +32,7 @@ from types import TracebackType
 from PIL import Image
 import io
 import threading
+from .. import GradientThing
 from ...camera import Camera
 
 LOGGER = logging.getLogger(__name__)
@@ -42,12 +44,12 @@ def _frame2bytes(frame: Image.Image) -> bytes:
         frame.save(buf, format="JPEG", quality=85)
         return buf.getvalue()
     
-class FlirCamera(BaseCamera):
+class FlirCamera(BaseCamera, GradientThing):
     # mjpeg_stream = lt.outputs.MJPEGStreamDescriptor()
     _stage: BaseStage = lt.thing_slot()
 
     def __init__(self, thing_server_interface):
-        super().__init__(thing_server_interface)
+        super().__init__(thing_server_interface=thing_server_interface)
 
         self.cam: Camera = SpinnakerCamera()
 
@@ -65,6 +67,18 @@ class FlirCamera(BaseCamera):
     ) -> None:
         self.cam.exit()
         super().__exit__(exc_type, exc_value, traceback)
+
+    async def life_span(self):
+        try:
+            async with self.cam:
+                yield
+                await anyio.sleep(1)
+        except anyio.get_cancelled_exc_class():
+            print("thing_life_span cancelled")
+            raise
+        except Exception as e:
+            print("thing_life_span execution", e)
+            raise
 
     def cb(self, data):
         image = Image.fromarray(data.astype("uint8"))

@@ -7,6 +7,7 @@ import time
 from PIL import Image
 import threading
 from typing import Callable, Any
+import anyio
 
 from . import Camera
 
@@ -14,13 +15,19 @@ class SpinnakerCamera(Camera):
     def __init__(self):
         self.counter = 0
 
-    def enter(self):
+    async def __aenter__(self):
+        await anyio.to_thread.run_sync(self.__enter__)
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await anyio.to_thread.run_sync(self.__exit__, exc_type, exc, tb)
+
+    def __enter__(self):
         self.system = PySpin.System.GetInstance()
         self.cams = self.system.GetCameras()
         self.cam = self.cams[0]
         self.cam.Init()
 
-    def exit(self):
+    def __exit__(self, exc_type, exc, tb):
         self.cam.Deinit()
         del self.cam
         self.cams.Clear()
