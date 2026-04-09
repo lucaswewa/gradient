@@ -257,3 +257,22 @@ POST http://localhost:8080/camera/software_trigger
 Content-Type: application/json
 
 {}
+
+
+### spectrometer
+POST http://localhost:5000/spectrometer/connect
+
+### spectrometer
+POST http://localhost:5000/spectrometer/disconnect
+
+### spectrometer
+GET http://localhost:5000/spectrometer/integration_time
+
+### spectrometer
+PUT http://localhost:5000/spectrometer/integration_time
+
+100000
+
+### spectrometer
+POST http://localhost:5000/spectrometer/get_spectrum
+

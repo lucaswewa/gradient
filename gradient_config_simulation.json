@@ -29,7 +29,8 @@
         },
         "illumination": "gradient_server.wots.illumination:SimulatorIllumination",
         "system": "gradient_server.wots.system:GradientSystem",
-        "tester": "gradient_server.wots.tester:TesterThing"
+        "tester": "gradient_server.wots.tester:TesterThing",
+        "spectrometer": "gradient_server.wots.spectrometer:OceanSpectrometer"
     },
     "settings_folder": "./gradient_server/settings/",
     "application_config": {
