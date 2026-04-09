@@ -1,11 +1,5 @@
 {
     "things": {
-        "my": {
-            "class": "gradient_server.wots:MyThing",
-            "kwargs": {
-                "ws_uri": "ws://localhost:7125/websocket"
-            }
-        },
         "camera": {
             "class": "gradient_server.wots.camera:SimulatedCamera"
         },

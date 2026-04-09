@@ -15,6 +15,7 @@ import time
 from threading import Thread
 from types import TracebackType
 from typing import Literal, Mapping, Optional, overload
+import anyio
 
 import numpy as np
 from PIL import Image, ImageFilter
@@ -26,6 +27,7 @@ from ..projector import SimulatedProjector
 from ..stage import SimulatedStage
 from .base_camera import BaseCamera
 from ..stage import BaseStage
+from .. import GradientThing
 
 LOGGER = logging.getLogger(__name__)
 
@@ -62,7 +64,7 @@ def _downsample_shape(
     raise ValueError("Shape should be a 2 or 3 element tuple.")
 
 
-class SimulatedCamera(BaseCamera):
+class SimulatedCamera(BaseCamera, GradientThing):
     """A Thing that simulates a camera for testing."""
 
     _stage: BaseStage = lt.thing_slot()
@@ -231,23 +233,18 @@ class SimulatedCamera(BaseCamera):
         except Exception:
             return Image.new(mode="RGB", size=(self.shape[1], self.shape[0]), color=0)
 
-    def __enter__(self):
-        """Start the capture thread when the Thing context manager is opened."""
-        super().__enter__()
-        self.start_streaming()
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
-    ) -> None:
-        """Close the capture thread when the Thing context manager is closed."""
-        if self._capture_thread is not None and self._capture_thread.is_alive():
-            self._capture_enabled = False
-            self._capture_thread.join()
-        super().__exit__(exc_type, exc_value, traceback)
+    async def life_span(self):
+        try:
+            self.start_streaming()
+            yield
+            self.stop_streaming()
+            await anyio.sleep(1)
+        except anyio.get_cancelled_exc_class():
+            print("thing_life_span cancelled")
+            raise
+        except Exception as e:
+            print("thing_life_span execution", e)
+            raise
 
     @lt.action
     def start_streaming(
@@ -274,6 +271,12 @@ class SimulatedCamera(BaseCamera):
             self._capture_enabled = True
             self._capture_thread = Thread(target=self._capture_frames)
             self._capture_thread.start()
+
+    @lt.action
+    def stop_streaming(self):
+            if self._capture_thread is not None and self._capture_thread.is_alive():
+                self._capture_enabled = False
+                self._capture_thread.join()
 
     @lt.property
     def stream_active(self) -> bool:
