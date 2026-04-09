@@ -48,11 +48,12 @@ from ..stage import SimulatedStage
 from .base_camera import BaseCamera
 from .async_mjpeg_stream import MJPEGStreamAsyncDescriptor
 from ...camera.vmbx import VmbX
+from .. import GradientThing
 
 LOGGER = logging.getLogger(__name__)
 
-class VimbaCamera(BaseCamera):
-    """Thing representing a camera that can be used for autofocus and imaging."""
+class VmbXCamera(BaseCamera, GradientThing):
+    """VmbX camera Thing."""
 
     _stage: BaseStage = lt.thing_slot()
     mjpeg_stream = MJPEGStreamAsyncDescriptor()
@@ -64,7 +65,7 @@ class VimbaCamera(BaseCamera):
         frame_interval: float = 0.1,
         device_id: str = None,
         **kwargs) -> None:
-        super().__init__(thing_server_interface)
+        super().__init__(thing_server_interface=thing_server_interface)
         self.gen = None
         self._capture_enabled = False
         self.frame_interval = frame_interval
@@ -74,34 +75,13 @@ class VimbaCamera(BaseCamera):
         self.shutter_on = True
         self.c = 1
 
-    async def __aenter__(self):
-        self.gen = self.thing_life_span()
-        await anext(self.gen)
-        # self.start_streaming()
-        return self
-    
-    async def __aexit__(
-        self,
-        exc_type: Optional[type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
-    ) -> None:
+    async def life_span(self):
         try:
-            await anext(self.gen)
-        except StopAsyncIteration:
-            pass
-
-    async def thing_life_span(self):
-        try:
-            async with anyio.create_task_group() as self.tg:
-                self.send_stream, self.receive_stream = anyio.create_memory_object_stream()
-                async with self.send_stream, self.receive_stream:
-                    self.tg.start_soon(self.queue_service)
-                    async with self._vmbx:
-                        print("before yield")
-                        yield
-                        print("after yield")
-                        await anyio.sleep(1)
+            async with self._vmbx:
+                print("before yield")
+                yield
+                print("after yield")
+                await anyio.sleep(1)
         except anyio.get_cancelled_exc_class():
             print("thing_life_span cancelled")
             raise
@@ -109,21 +89,18 @@ class VimbaCamera(BaseCamera):
             print("thing_life_span execution", e)
             raise
 
-    async def queue_service(self) -> None:
-        async for item in self.receive_stream:
-            frame = Image.fromarray(item)
-            ds_frame = frame.resize((640, 480), resample=Image.Resampling.NEAREST)
-            b = _frame2bytes(frame)
-            b_ds = _frame2bytes(ds_frame)
-
-            await self.mjpeg_stream.add_frame(b)
-            await self.lores_mjpeg_stream.add_frame(b_ds)
-
     def frame_handler(self, frame: NDArray) -> None:
         """Handle a new frame from the VmbX camera."""
         with self._vmbx_lock:
             data = frame.copy()
-            self._thing_server_interface.call_async_task(self.send_stream.send, data)
+            # self._thing_server_interface.call_async_task(self.send_stream.send, data)
+            image = Image.fromarray(data)
+            ds_image = image.resize((640, 480), resample=Image.Resampling.NEAREST)
+            b = _frame2bytes(image)
+            b_ds = _frame2bytes(ds_image)
+
+            self._thing_server_interface.call_async_task(self.mjpeg_stream.add_frame, b)
+            self._thing_server_interface.call_async_task(self.lores_mjpeg_stream.add_frame, b_ds)
 
     def capture_image(
         self,

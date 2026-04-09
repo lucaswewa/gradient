@@ -1,7 +1,7 @@
 {
     "things": {
         "camera": {
-            "class": "gradient_server.wots.camera:VimbaCamera",
+            "class": "gradient_server.wots.camera:VmbXCamera",
             "kwargs": {
                 "device_id": "DEV_1AB22C00CBC8"
             }

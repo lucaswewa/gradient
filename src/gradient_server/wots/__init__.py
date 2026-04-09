@@ -11,6 +11,7 @@ from typing import Optional, Any
 from types import TracebackType
 import json
 import websockets
+from abc import ABC, abstractmethod
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,6 +52,27 @@ class CircularBuffer:
             return self.buffer[start_index : start_index + self.count]
         else:
             return self.buffer[start_index:] + self.buffer[:self.head]
+
+
+class GradientThing(ABC, lt.Thing):
+    def __init__(self, thing_server_interface: lt.ThingServerInterface):
+        super().__init__(thing_server_interface=thing_server_interface)
+
+    async def __aenter__(self):
+        self.gen = self.life_span()
+        await anext(self.gen)
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        try:
+            await anext(self.gen)
+        except StopAsyncIteration:
+            pass
+
+    @abstractmethod
+    async def life_span(self):
+        pass
+
 
 class MyThing(lt.Thing):
     """A test WoT thing."""
