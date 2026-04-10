@@ -31,7 +31,7 @@ export default {
 
   computed: {
     streamImgUri: function () {
-      return `${this.store().baseUri}/camera/lores_mjpeg_stream`;
+      return `${this.store().baseUri}/camera/mjpeg_stream`;
     },
   },
 

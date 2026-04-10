@@ -25,7 +25,7 @@
           class="uk-button uk-button-default uk-width-1-1"
           @click="startModals"
         >
-          Launch Calibration Wizard
+          Calibration Wizard
         </button>
         <li v-for="item in calibrationTabs" :key="'setting-' + item.id + '-tab-icon'">
           <tabIcon
@@ -98,7 +98,7 @@ export default {
         },
         {
           id: "stage-control",
-          title: "Stage Control Preferences",
+          title: "Stage Ctrl Preferences",
           requireConnection: false,
           component: markRaw(stageControlSettings),
           requiredThings: ["stage"],
@@ -170,7 +170,7 @@ export default {
 .settings-nav {
   overflow-y: auto;
   overflow-x: hidden;
-  width: 250px;
+  width: 160px;
   padding: 10px;
   background-color: rgba(180, 180, 180, 0.03);
   border-width: 0 1px 0 0;

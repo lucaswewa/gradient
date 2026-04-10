@@ -4,7 +4,7 @@
       <div class="uk-width-large">
         <h3>Automatic calibration</h3>
         <cameraCalibrationSettings :camera-uri="cameraUri" />
-        <h3>Manual camera settings</h3>
+        <h3>Manual camera settings1</h3>
         <div class="uk-margin-small-bottom">
           <server-specified-property-control
             v-for="(setting, index) in manualCameraSettings"
@@ -61,8 +61,8 @@ export default {
 
 <style lang="less">
 #mini-stream {
-  min-width: 300px;
-  max-width: 600px;
+  min-width: 400px;
+  // max-width: 600px;
   text-align: center;
   margin-left: auto;
   margin-right: auto;
