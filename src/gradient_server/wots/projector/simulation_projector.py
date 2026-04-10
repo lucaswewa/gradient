@@ -141,9 +141,11 @@ class SimulatedProjector(BaseProjector, GradientThing):
     _blob_density: int = 400
 
     async def life_span(self):
+        await anyio.to_thread.run_sync(self.__enter__)
         print("before yield")
         yield
         print("after yield")
+        await anyio.to_thread.run_sync(self.__exit__, None, None, None)
         await anyio.sleep(1)
 
     @lt.property
