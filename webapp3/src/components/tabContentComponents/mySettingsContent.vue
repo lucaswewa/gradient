@@ -172,7 +172,7 @@ export default {
 .settings-nav {
   overflow-y: auto;
   overflow-x: hidden;
-  width: 240px;
+  width: 160px;
   padding: 10px;
   background-color: rgba(180, 180, 180, 0.03);
   border-width: 0 1px 0 0;
