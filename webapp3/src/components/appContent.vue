@@ -85,6 +85,7 @@ import aboutContent from "./tabContentComponents/aboutContent.vue";
 // import backgroundDetectContent from "./tabContentComponents/backgroundDetectContent.vue";
 import ControlContent from "./tabContentComponents/controlContent.vue";
 import myControlContent from "./tabContentComponents/myControlContent.vue";
+import offsetContent from "./tabContentComponents/offsetContent.vue";
 // import loggingContent from "./tabContentComponents/loggingContent.vue";
 // import powerContent from "./tabContentComponents/powerContent.vue";
 // import scanListContent from "./tabContentComponents/scanListContent.vue";
@@ -112,6 +113,7 @@ export default {
     // calibrationWizard,
     myControlContent,
     ControlContent,
+    offsetContent,
     aboutContent,
     testerContent,
     mySettingsContent,
@@ -180,6 +182,12 @@ export default {
           title: "Settings1",
           icon: "settings",
           component: markRaw(settingsContent),
+        },
+        {
+          id: "offset",
+          title: "Offset",
+          icon: "settings",
+          component: markRaw(offsetContent),
         },
         // {
         //   id: "background-detect",
