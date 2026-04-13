@@ -1,74 +1,111 @@
 <template>
-  <VChart class="chart" :option="option" />
+  <div ref="chartRef" style="width: 800px; height: 400px;"></div>
+  <button @click="addMonth">Add Month</button>
 </template>
 
 <script>
-import { use } from "echarts/core";
-import { CanvasRenderer } from "echarts/renderers";
-import { PieChart } from "echarts/charts";
-import { TitleComponent, TooltipComponent, LegendComponent } from "echarts/components";
-import VChart, { THEME_KEY } from "vue-echarts";
-
-// Register ECharts components
-use([CanvasRenderer, PieChart, TitleComponent, TooltipComponent, LegendComponent]);
+import * as echarts from 'echarts'
 
 export default {
-  name: "PieChartComponent",
-  components: {
-    VChart
-  },
-  provide() {
-    return {
-      [THEME_KEY]: "dark"
-    };
-  },
+  name: 'BarChart',
   data() {
     return {
-      option: {
+      chartInstance: null,
+      salesData: [
+        { month: 'Jan', sales: 120 },
+        { month: 'Feb', sales: 180 },
+        { month: 'Mar', sales: 90 },
+        { month: 'Apr', sales: 210 }
+      ]
+    }
+  },
+  watch: {
+    salesData: {
+      handler() {
+        this.updateChart()
+      },
+      deep: true
+    }
+  },
+  mounted() {
+    this.initChart()
+    window.addEventListener('resize', this.handleResize)
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.handleResize)
+    if (this.chartInstance) {
+      this.chartInstance.dispose()
+    }
+  },
+  methods: {
+    initChart() {
+      this.chartInstance = echarts.init(this.$refs.chartRef)
+      this.chartInstance.setOption(this.getChartOptions())
+    },
+    updateChart() {
+      if (this.chartInstance) {
+        this.chartInstance.setOption({
+          xAxis: {
+            data: this.salesData.map(item => item.month)
+          },
+          series: [{
+            data: this.salesData.map(item => item.sales)
+          }]
+        })
+      }
+    },
+    addMonth() {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+      const nextIndex = this.salesData.length
+      if (nextIndex >= 12) return
+      this.salesData.push({
+        month: months[nextIndex],
+        sales: Math.floor(Math.random() * 100) + 100
+      })
+    },
+    getChartOptions() {
+      return {
         title: {
-          text: "Traffic Sources",
-          left: "center",
+          text: 'Monthly Sales Report',
+          left: 'center'
         },
         tooltip: {
-          trigger: "item",
-          formatter: "{a} <br/>{b} : {c} ({d}%)",
+          trigger: 'axis'
         },
-        legend: {
-          orient: "vertical",
-          left: "left",
-          data: ["Direct", "Email", "Ad Networks", "Video Ads", "Search Engines"],
+        xAxis: {
+          type: 'category',
+          data: this.salesData.map(item => item.month)
+        },
+        yAxis: {
+          type: 'value',
+          name: 'Sales ($)'
         },
         series: [
           {
-            name: "Traffic Sources",
-            type: "pie",
-            radius: "55%",
-            center: ["50%", "60%"],
-            data: [
-              { value: 335, name: "Direct" },
-              { value: 310, name: "Email" },
-              { value: 234, name: "Ad Networks" },
-              { value: 135, name: "Video Ads" },
-              { value: 1548, name: "Search Engines" },
-            ],
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowColor: "rgba(0, 0, 0, 0.5)",
-              },
-            },
-          },
-        ],
+            name: 'Sales',
+            type: 'bar',
+            data: this.salesData.map(item => item.sales),
+            itemStyle: {
+              color: '#5470C6'
+            }
+          }
+        ]
       }
-    };
+    },
+    handleResize() {
+      if (this.chartInstance) {
+        this.chartInstance.resize()
+      }
+    }
   }
-};
+}
 </script>
 
 <style scoped>
-.chart {
-  height: 400px;
-  width: 600px;
+div {
+  margin: 20px auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 </style>
