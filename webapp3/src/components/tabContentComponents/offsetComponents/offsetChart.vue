@@ -1,111 +1,96 @@
 <template>
-  <div ref="chartRef" style="width: 800px; height: 400px;"></div>
-  <button @click="addMonth">Add Month</button>
+  <v-chart class="chart" :option="option" autoresize />
 </template>
 
-<script>
-import * as echarts from 'echarts'
+<script setup>
+import { ref, computed } from 'vue';
+import { use } from 'echarts/core';
+import { CanvasRenderer } from 'echarts/renderers';
+import { LineChart } from 'echarts/charts';
+import {
+  TitleComponent,
+  TooltipComponent,
+  GridComponent
+} from 'echarts/components';
+import VChart from 'vue-echarts';
 
-export default {
-  name: 'BarChart',
-  data() {
-    return {
-      chartInstance: null,
-      salesData: [
-        { month: 'Jan', sales: 120 },
-        { month: 'Feb', sales: 180 },
-        { month: 'Mar', sales: 90 },
-        { month: 'Apr', sales: 210 }
-      ]
-    }
-  },
-  watch: {
-    salesData: {
-      handler() {
-        this.updateChart()
-      },
-      deep: true
-    }
-  },
-  mounted() {
-    this.initChart()
-    window.addEventListener('resize', this.handleResize)
-  },
-  beforeUnmount() {
-    window.removeEventListener('resize', this.handleResize)
-    if (this.chartInstance) {
-      this.chartInstance.dispose()
-    }
-  },
-  methods: {
-    initChart() {
-      this.chartInstance = echarts.init(this.$refs.chartRef)
-      this.chartInstance.setOption(this.getChartOptions())
-    },
-    updateChart() {
-      if (this.chartInstance) {
-        this.chartInstance.setOption({
-          xAxis: {
-            data: this.salesData.map(item => item.month)
-          },
-          series: [{
-            data: this.salesData.map(item => item.sales)
-          }]
-        })
-      }
-    },
-    addMonth() {
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-      const nextIndex = this.salesData.length
-      if (nextIndex >= 12) return
-      this.salesData.push({
-        month: months[nextIndex],
-        sales: Math.floor(Math.random() * 100) + 100
-      })
-    },
-    getChartOptions() {
-      return {
-        title: {
-          text: 'Monthly Sales Report',
-          left: 'center'
-        },
-        tooltip: {
-          trigger: 'axis'
-        },
-        xAxis: {
-          type: 'category',
-          data: this.salesData.map(item => item.month)
-        },
-        yAxis: {
-          type: 'value',
-          name: 'Sales ($)'
-        },
-        series: [
-          {
-            name: 'Sales',
-            type: 'bar',
-            data: this.salesData.map(item => item.sales),
-            itemStyle: {
-              color: '#5470C6'
-            }
-          }
-        ]
-      }
-    },
-    handleResize() {
-      if (this.chartInstance) {
-        this.chartInstance.resize()
-      }
-    }
-  }
+// Register modules
+use([CanvasRenderer, LineChart, TitleComponent, TooltipComponent, GridComponent]);
+
+function func(x) {
+  x /= 10;
+  return Math.sin(x) * Math.cos(x * 2 + 1) * Math.sin(x * 3 + 2) * 50;
 }
+
+// Generate Sine Wave Data
+const generateSineData = () => {
+  let data = [];
+  for (let i = -200; i <= 200; i += 0.1) {
+    data.push([i, func(i)]);
+  }
+  return data;
+};
+
+const option = ref({
+  animation: false,
+  grid: {
+    top: 40,
+    left: 50,
+    right: 40,
+    bottom: 50
+  },
+  xAxis: {
+    name: 'x',
+    minorTick: {
+      show: true
+    },
+    minorSplitLine: {
+      show: true
+    }
+  },
+  yAxis: {
+    name: 'y',
+    min: -100,
+    max: 100,
+    minorTick: {
+      show: true
+    },
+    minorSplitLine: {
+      show: true
+    }
+  },
+  dataZoom: [
+    {
+      show: true,
+      type: 'inside',
+      filterMode: 'none',
+      xAxisIndex: [0],
+      startValue: -20,
+      endValue: 20
+    },
+    {
+      show: true,
+      type: 'inside',
+      filterMode: 'none',
+      yAxisIndex: [0],
+      startValue: -20,
+      endValue: 20
+    }
+  ],
+  series: [
+    {
+      type: 'line',
+      showSymbol: false,
+      clip: true,
+      data: generateSineData()
+    }
+  ]
+});
 </script>
 
 <style scoped>
-div {
-  margin: 20px auto;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+.chart {
+  height: 400px;
+  width: 100%;
 }
 </style>
