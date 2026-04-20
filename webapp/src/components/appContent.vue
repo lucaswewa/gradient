@@ -75,11 +75,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, useTemplateRef, computed, onMounted, markRaw } from "vue";
-import store from "@/store";
-import { eventBus } from "@/eventBus";
-
+<script>
 // Import generic components
 import tabIcon from "./genericComponents/tabIcon.vue";
 import tabContent from "./genericComponents/tabContent.vue";
@@ -93,133 +89,154 @@ import scanListContent from "./tabContentComponents/scanListContent.vue";
 import settingsContent from "./tabContentComponents/settingsContent.vue";
 import slideScanContent from "./tabContentComponents/slideScanContent.vue";
 import viewContent from "./tabContentComponents/viewContent.vue";
+import { markRaw } from "vue";
+import { eventBus } from "../eventBus.js";
 
-// Import modal components
+// Import modal components for device initialisation
 import calibrationWizard from "./modalComponents/calibrationWizard.vue";
 
-// --- Template Refs ---
-const calibrationWizardRef = useTemplateRef("calibrationWizard");
-const containerLeftRef = useTemplateRef("containerLeft");
+// Export main app
+export default {
+  name: "AppContent",
 
-// --- State ---
-const currentTab = ref("view");
-
-const bottomTabs = ref([
-  {
-    id: "settings",
-    title: "Settings",
-    icon: "settings",
-    component: markRaw(settingsContent),
-    class: "uk-margin-auto-top"
+  components: {
+    tabIcon,
+    tabContent,
+    calibrationWizard,
   },
-  { id: "logging", title: "Logging", icon: "assignment_late", component: markRaw(loggingContent) },
-  {
-    id: "about",
-    title: "About",
-    icon: "info",
-    component: markRaw(aboutContent)
+  data: function () {
+    return {
+      currentTab: "view",
+      bottomTabs: [
+        {
+          id: "settings",
+          title: "Settings",
+          icon: "settings",
+          component: markRaw(settingsContent),
+          class: "uk-margin-auto-top",
+        },
+        {
+          id: "logging",
+          title: "Logging",
+          icon: "assignment_late",
+          component: markRaw(loggingContent),
+        },
+        {
+          id: "about",
+          title: "About",
+          icon: "info",
+          component: markRaw(aboutContent),
+        },
+        {
+          id: "power",
+          title: "Power",
+          icon: "power_settings_new",
+          component: markRaw(powerContent),
+        },
+      ],
+      coreTopTabs: [
+        {
+          id: "view",
+          title: "View",
+          icon: "visibility",
+          component: markRaw(viewContent),
+          requiredThings: [],
+        },
+        {
+          id: "control",
+          title: "Control",
+          icon: "gamepad",
+          component: markRaw(controlContent),
+          requiredThings: [],
+        },
+        {
+          id: "slide-scan",
+          title: "Slide Scan",
+          icon: "settings_overscan",
+          component: markRaw(slideScanContent),
+          requiredThings: ["smart_scan"],
+        },
+        {
+          id: "scan-list",
+          title: "Scan List",
+          icon: "photo_library",
+          component: markRaw(scanListContent),
+          requiredThings: ["smart_scan"],
+        },
+      ],
+    };
   },
-  {
-    id: "power",
-    title: "Power",
-    icon: "power_settings_new",
-    component: markRaw(powerContent)
+
+  computed: {
+    tabOrder: function () {
+      var ind = [];
+      for (const tab of this.topTabs) {
+        ind.push(tab.id);
+      }
+      for (const tab of this.bottomTabs) {
+        ind.push(tab.id);
+      }
+      return ind;
+    },
+
+    topTabs: function () {
+      // Filter core top tabs based on available Things. Once Things can specify a
+      // custom tab those will need to be added here
+      return this.coreTopTabs.filter((tab) => {
+        if (!tab.requiredThings || tab.requiredThings.length === 0) return true;
+        return tab.requiredThings.every((thing) => this.thingAvailable(thing));
+      });
+    },
+    allTabs() {
+      return [...this.topTabs, ...this.bottomTabs];
+    },
+    currentTabIndex: function () {
+      return this.tabOrder.indexOf(this.currentTab);
+    },
   },
-]);
 
-const coreTopTabs = ref([
-  {
-    id: "view",
-    title: "View",
-    icon: "visibility",
-    component: markRaw(viewContent),
-    requiredThings: []
+  mounted() {
+    // A global signal listener to switch tab
+    eventBus.on("globalSwitchTab", (tabID) => {
+      this.currentTab = tabID;
+    });
+    // A global signal listener to increment tab
+    eventBus.on("globalIncrementTab", () => {
+      this.incrementTabBy(1);
+    });
+    // A global signal listener to decrement tab
+    eventBus.on("globalDecrementTab", () => {
+      this.incrementTabBy(-1);
+    });
+    if (this.$store.getters.ready) {
+      this.startModals();
+    }
   },
-  {
-    id: "control",
-    title: "Control",
-    icon: "gamepad",
-    component: markRaw(controlContent),
-    requiredThings: []
+
+  methods: {
+    setTab: function (event, tab) {
+      if (!(this.currentTab == tab)) {
+        this.currentTab = tab;
+      }
+    },
+    incrementTabBy: function (n) {
+      const newIndex =
+        (((this.currentTabIndex + n) % this.tabOrder.length) + this.tabOrder.length) %
+        this.tabOrder.length;
+      const newId = this.tabOrder[newIndex];
+      this.currentTab = newId;
+    },
+    startModals: function () {
+      this.$refs.calibrationWizard.show_if_needed();
+    },
+    enterApp: function () {
+      // Stuff to do once connected and all init modals are finished
+    },
+    scrollToTop() {
+      this.$refs.containerLeft.scrollTo({ top: 0 });
+    },
   },
-  {
-    id: "slide-scan",
-    title: "Slide Scan",
-    icon: "settings_overscan",
-    component: markRaw(slideScanContent),
-    requiredThings: ["smart_scan"]
-  },
-  {
-    id: "scan-list",
-    title: "Scan List",
-    icon: "photo_library",
-    component: markRaw(scanListContent),
-    requiredThings: ["smart_scan"]
-  },
-]);
-
-// --- Computed ---
-const topTabs = computed(() => {
-  return coreTopTabs.value.filter((tab) => {
-    if (!tab.requiredThings || tab.requiredThings.length === 0) return true;
-    // Assuming thingAvailable is a store getter or helper. Adjust according to your project.
-    return tab.requiredThings.every((thing) => store.getters['wot/thingAvailable'](thing));
-  });
-});
-
-const allTabs = computed(() => [...topTabs.value, ...bottomTabs.value]);
-
-const tabOrder = computed(() => {
-  return allTabs.value.map(tab => tab.id);
-});
-
-const currentTabIndex = computed(() => {
-  return tabOrder.value.indexOf(currentTab.value);
-});
-
-// --- Methods ---
-const setTab = (event, tab) => {
-  if (currentTab.value !== tab) {
-    currentTab.value = tab;
-  }
 };
-
-const incrementTabBy = (n) => {
-  const len = tabOrder.value.length;
-  const newIndex = (((currentTabIndex.value + n) % len) + len) % len;
-  currentTab.value = tabOrder.value[newIndex];
-};
-
-const startModals = () => {
-  calibrationWizardRef.value?.show_if_needed();
-};
-
-const enterApp = () => {
-  // Logic for after initialization
-};
-
-const scrollToTop = () => {
-  containerLeftRef.value?.scrollTo({ top: 0 });
-};
-
-// --- Lifecycle ---
-onMounted(() => {
-  eventBus.on("globalSwitchTab", (tabID) => {
-    currentTab.value = tabID;
-  });
-
-  eventBus.on("globalIncrementTab", () => {
-    incrementTabBy(1);
-  });
-
-  eventBus.on("globalDecrementTab", () => {
-    incrementTabBy(-1);
-  });
-
-  if (store.getters.ready) {
-    startModals();
-  }
-});
 </script>
 
 <style scoped lang="less">
