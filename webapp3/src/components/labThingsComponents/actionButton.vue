@@ -30,7 +30,7 @@
 <script>
 import ActionProgressBar from "./actionProgressBar.vue";
 import ActionStatusModal from "./actionStatusModal.vue";
-import { eventBus } from "../../eventBus.js";
+import { eventBus } from "../../eventBus.ts";
 import { useIntersectionObserver } from "@vueuse/core";
 import modalMixins from "@/mixins/modalMixins";
 import useLTI from "@/mixins/labThingsMixins";

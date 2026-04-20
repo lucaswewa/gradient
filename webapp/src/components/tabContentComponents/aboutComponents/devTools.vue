@@ -1,0 +1,50 @@
+<template>
+  <div>
+    <form class="uk-form-stacked" action="" method="GET" @submit="overrideAPIHost">
+      <label class="uk-form-label">Override API origin</label>
+      <input v-model="newOrigin" name="overrideOrigin" class="uk-input" type="text" />
+      <label class="uk-form-label">
+        <input v-model="reloadWhenOverridingOrigin" class="uk-checkbox" type="checkbox" />
+        Reload web app with new origin
+      </label>
+      <button class="uk-button uk-button-default uk-margin-small">Apply</button>
+    </form>
+  </div>
+</template>
+
+<script>
+// Export main app
+export default {
+  name: "DevTools",
+
+  components: {},
+
+  data: function () {
+    return {
+      newOrigin: this.$store.state.overrideOrigin,
+      reloadWhenOverridingOrigin: true,
+    };
+  },
+
+  methods: {
+    overrideAPIHost: function (event) {
+      // Save the origin override, so that if we reload the web app, you can easily
+      this.$store.commit("changeOverrideOrigin", this.newOrigin);
+
+      // If we have elected not to reload the interface, just update the origin
+      // in the store.  Otherwise, the form's default action will do the job for us.
+      // TODO: preserve other query parameters when reloading
+      if (!this.reloadWhenOverridingOrigin) {
+        this.$store.commit("changeOrigin", this.newOrigin);
+        event.preventDefault();
+      }
+    },
+  },
+};
+</script>
+
+<style scoped lang="less">
+.error-icon {
+  font-size: 120px;
+}
+</style>

@@ -96,7 +96,7 @@ import mySettingsContent from "./tabContentComponents/mySettingsContent.vue";
 import testerContent from "./tabContentComponents/testerContent.vue";
 
 import { markRaw } from "vue";
-import { eventBus } from "../eventBus.js";
+import { eventBus } from "../eventBus.ts";
 
 // Import modal components for device initialisation
 // import calibrationWizard from "./modalComponents/calibrationWizard.vue";

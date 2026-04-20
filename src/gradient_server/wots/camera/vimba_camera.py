@@ -74,7 +74,7 @@ class VmbXCamera(BaseCamera, GradientThing):
     async def life_span(self):
         try:
             async with self._vmbx:
-                print("before yield")
+                print("VmbXCamera before yield")
                 yield
                 print("after yield")
                 await anyio.sleep(1)
