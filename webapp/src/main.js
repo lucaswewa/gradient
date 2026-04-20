@@ -6,7 +6,7 @@ import UIkit from "uikit";
 // Import MD icons
 import "material-symbols/outlined.css";
 
-import modalMixin from "@/mixins/modalMixins";
+import modalMixin from "@/mixins/modalMixins.js";
 import labThingsMixins from "./mixins/labThingsMixins";
 
 // UIKit overrides

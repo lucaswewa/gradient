@@ -13,7 +13,7 @@
 </template>
 
 <script>
-import { formatValue } from "@/js_utils/formatter.ts";
+import { formatValue } from "@/js_utils/formatter.mjs";
 import InputFromSchema from "./inputFromSchema.vue";
 
 export default {

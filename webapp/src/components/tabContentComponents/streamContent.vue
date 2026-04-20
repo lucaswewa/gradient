@@ -34,7 +34,7 @@
 </template>
 
 <script>
-import { eventBus } from "../../eventBus.ts";
+import { eventBus } from "../../eventBus.js";
 import { useIntersectionObserver } from "@vueuse/core";
 
 // Export main app

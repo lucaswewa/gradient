@@ -84,7 +84,7 @@ import PaginateLinks from "@/components/genericComponents/paginateLinks.vue";
 import actionButton from "../labThingsComponents/actionButton.vue";
 import scanCard from "./scanListComponents/scanCard.vue";
 import ScanViewerModal from "./scanListComponents/scanViewer.vue";
-import { eventBus } from "../../eventBus.ts";
+import { eventBus } from "../../eventBus.js";
 import { useIntersectionObserver } from "@vueuse/core";
 
 // Export main app

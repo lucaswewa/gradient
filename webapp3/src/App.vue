@@ -27,7 +27,7 @@
 import appContent from "./components/appContent.vue";
 import loadingContent from "./components/loadingContent.vue";
 import Mousetrap from "mousetrap";
-import { eventBus } from "./eventBus.ts";
+import { eventBus } from "./eventBus.js";
 
 import { useStore } from './store'
 import useLTI from '@/mixins/labThingsMixins.js'

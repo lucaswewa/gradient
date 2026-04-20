@@ -85,7 +85,7 @@ def customize_server(
             allow_headers=["*"],
         )
 
-    add_static_files(server.app, application_config.data_folder)
+    # add_static_files(server.app, application_config.data_folder)
 
     # Add an endpoint to get the logs - (directly calling the FastAPI decorator)
     server.app.get("/log/")(retrieve_log)

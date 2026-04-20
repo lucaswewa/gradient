@@ -29,7 +29,7 @@
 import UIkit from "uikit";
 import ActionProgressBar from "./actionProgressBar.vue";
 import ActionLogDisplay from "./actionLogDisplay.vue";
-import { eventBus } from "../../eventBus.ts";
+import { eventBus } from "../../eventBus.js";
 import miniStreamDisplay from "../genericComponents/miniStreamDisplay.vue";
 
 export default {

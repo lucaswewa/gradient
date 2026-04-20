@@ -61,7 +61,7 @@ and zero position buttons. It also includes the d-pad.
 import ActionButton from "../../labThingsComponents/actionButton.vue";
 import syncPropertyButton from "../../labThingsComponents/syncPropertyButton.vue";
 import stageControlButtons from "./stageControlButtons.vue";
-import { eventBus } from "../../../eventBus.ts";
+import { eventBus } from "../../../eventBus.js";
 
 export default {
   name: "PaneControl",

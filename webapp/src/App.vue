@@ -27,7 +27,7 @@
 import appContent from "./components/appContent.vue";
 import loadingContent from "./components/loadingContent.vue";
 import Mousetrap from "mousetrap";
-import { eventBus } from "./eventBus.ts";
+import { eventBus } from "./eventBus.js";
 
 const move_keys = ["up", "down", "left", "right", "pageup", "pagedown"];
 

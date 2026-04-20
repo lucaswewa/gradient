@@ -18,7 +18,7 @@
 </template>
 <script>
 import ActionButton from "../../labThingsComponents/actionButton.vue";
-import { eventBus } from "../../../eventBus.ts";
+import { eventBus } from "../../../eventBus.js";
 
 export default {
   name: "AutofocusControl",
