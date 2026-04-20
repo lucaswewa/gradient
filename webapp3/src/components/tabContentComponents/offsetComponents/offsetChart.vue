@@ -1,10 +1,10 @@
 <template>
-  <div ref="chartRef" style="width: 800px; height: 400px;"></div>
-  <button @click="addMonth">Add Month</button>
+  <Line :data="data" :options="options" />
 </template>
 
-<script>
-import * as echarts from 'echarts'
+<script setup>
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line } from 'vue-chartjs';
 
 export default {
   name: 'BarChart',
@@ -217,13 +217,9 @@ export default {
     }
   }
 }
-</script>
 
-<style scoped>
-div {
-  margin: 20px auto;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-</style>
+const options = {
+  responsive: true,
+  maintainAspectRatio: false
+};
+</script>
