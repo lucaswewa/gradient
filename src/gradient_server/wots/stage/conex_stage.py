@@ -36,6 +36,14 @@ class ConexStage(BaseStage):
     ) -> None:
         self._stage.exit_stage()
 
+    @lt.property
+    def velocity(self) -> float:
+        return self._stage.get_velocity()
+    
+    @velocity.setter
+    def set_velocity(self, v: float):
+        self._stage.set_velocity(v)
+
     @lt.action
     def move_abs(self, position: float) -> None:
         """Make a absolute move. Keyword arguments should be axis names."""

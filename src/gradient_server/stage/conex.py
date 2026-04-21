@@ -32,6 +32,14 @@ class Conex:
         res = read_response(self._ser)
         return float(res[2:])
     
+    def get_velocity(self) -> float:
+        send_command(self._ser, "VA?")
+        res = read_response(self._ser)
+        return float(res[2:])
+    
+    def set_velocity(self, v: float):
+        send_command(self._ser, f"VA{v:.3f}")
+
     def move_absolute(self, position) -> None:
         send_command(self._ser, f"PA{position:.3f}")
 
