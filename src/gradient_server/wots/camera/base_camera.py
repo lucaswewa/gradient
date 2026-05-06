@@ -24,7 +24,7 @@ from PIL import Image
 import labthings_fastapi as lt
 from labthings_fastapi.types.numpy import NDArray
 from ...camera import Camera
-
+from ...ui import ActionButton, PropertyControl, action_button_for, property_control_for
 class JPEGBlob(lt.blob.Blob):
     """A class representing a JPEG image as a LabThings FastAPI Blob."""
 
@@ -186,6 +186,30 @@ class BaseCamera(lt.Thing):
         """
         return False
 
+    @lt.property
+    def primary_calibration_actions(self) -> list[ActionButton]:
+        """The primary calibration actions for this camera.
+
+        This always returns an empty list in BaseCamera. It should be reimplemented by
+        child classes if calibration is required.
+        """
+        return [
+            action_button_for(self, "full_auto_calibrate", submit_label="Full Auto-Calibrate"),
+        ]
+    
+    @lt.property
+    def manual_camera_settings(self) -> list[PropertyControl]:
+        """The manual camera setting controls for this camera.
+
+        This always returns an empty list in BaseCamera. It should be reimplemented by
+        child classes if manual camera settings are supported.
+        """
+        return [
+            property_control_for(self, "repeating", label="Infinite Sample"),
+            property_control_for(self, "blob_density", label="Sample Density"),
+            property_control_for(self, "objective", label="Objective Magnification", options={ "4x": 4, }),
+        ]
+    
     @lt.action
     def start_streaming(
         self, main_resolution: tuple[int, int] = (800, 800), buffer_count: int = 1
