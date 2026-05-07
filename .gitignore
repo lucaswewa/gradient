@@ -174,3 +174,5 @@ data/
 # web app build
 /src/gradient_server/static/
 /report.xml
+
+/external
