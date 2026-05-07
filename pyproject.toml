@@ -16,12 +16,12 @@ classifiers = [
 dependencies = [
   "labthings-fastapi==0.1.0",
   # "camera-stage-mapping",
-  "opencv-python-headless",
+  "opencv-python-headless ~= 4.11.0.86",
   # "openflexure-stitching[libvips]",
-  "pillow",
-  "anyio",
+  "pillow ~= 12.1.1",
+  "anyio ~= 4.12.1",
   "numpy == 1.26.4",
-  # "scipy",
+  "scipy ~= 1.15.3",
   "piexif",
   "pydantic",
   "simplejpeg >= 1.9.0",
@@ -67,7 +67,7 @@ where = ["src"]
 plugins = ["pydantic.mypy"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py310"
 
 [tool.pytest.ini_options]
 addopts = [

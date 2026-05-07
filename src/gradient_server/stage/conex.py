@@ -40,6 +40,16 @@ class Conex:
     def set_velocity(self, v: float):
         send_command(self._ser, f"VA{v:.3f}")
 
+    def get_acceleration(self) -> float:
+        send_command(self._ser, "AC?")
+        res = read_response(self._ser)
+        return float(res[2:])
+
+    def set_acceleration(self, acceleration: float):
+        if not 1.5 <= acceleration <= 1500:
+            raise ValueError("Acceleration must be between 1.5 and 1500.")
+        send_command(self._ser, f"AC{acceleration:.3f}")
+
     def move_absolute(self, position) -> None:
         send_command(self._ser, f"PA{position:.3f}")
 
