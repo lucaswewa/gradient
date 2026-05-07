@@ -121,13 +121,13 @@ class IMS5600:
             raw_data = transfer_data[0][0]
             scaled_data = transfer_data[1][0]
 
-            if raw_data == 2147483397:
+            if scaled_data < -10:
                 print("No new data available, retrying...")
                 time.sleep(0.1)
-                continue
-            data.append(scaled_data)
-            print(f"{self.sensor_name} data: \n\traw data: {raw_data}\n\tscaled_data: {scaled_data}")
-            print(type(raw_data), type(scaled_data))
+            else:
+                data.append(scaled_data)
+            # print(f"{self.sensor_name} data: \n\traw data: {raw_data}\n\tscaled_data: {scaled_data}")
+            # print(type(raw_data), type(scaled_data))
             time.sleep(.1)
 
         return np.array(data)

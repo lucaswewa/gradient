@@ -12,6 +12,9 @@
         "ims5600": {
             "class": "gradient_server.wots.ims5600.ims5600meter:IMS5600Meter"
         },
+        "scanner": {
+            "class": "gradient_server.wots.offset_scanner:Scanner"
+        },
         "projector_r": {
             "class": "gradient_server.wots.projector:SimulatedProjector",
             "kwargs": {
